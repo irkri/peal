@@ -1,6 +1,7 @@
 import peal.environment
 import peal.operations
 import peal.individual
+import peal.evaluation
 
 from peal.environment.base import Environment
 from peal.environment.population import Population

@@ -5,6 +5,7 @@ algorithm.
 from typing import Union
 
 from peal.environment.population import Population
+from peal.evaluation.callback import Callback
 from peal.evaluation.fitness import Fitness
 from peal.individual.base import Individual
 from peal.operations.config import _Toperationundetermined, check_marked
@@ -49,24 +50,48 @@ class Environment:
             marked_as = check_marked(operation)
             self._operations[marked_as] = operation
 
-    def evolve(self, ngen: int):
+    def compile(self):
+        if "selection" not in self._operations:
+            raise RuntimeError("No selection operation specified.")
+        if "reproduction" not in self._operations:
+            raise RuntimeError("No reproduction operation specified.")
+        if "mutation" not in self._operations:
+            raise RuntimeError("No mutation operation specified.")
+
+    def evolve(self, ngen: int, callbacks: list[Callback]):
         """Start an evolutionary process.
 
         Args:
             ngen (int): Number of generations to evolve.
         """
-        if "selection" not in self._operations:
-            raise RuntimeError("No selection operation specified.")
+        self.compile()
+        for callback in callbacks:
+            if not isinstance(callback, Callback):
+                raise TypeError("All callbacks have to be of type Callback")
+            callback.on_start(self._population)
         for _ in range(ngen):
-            offspring = Population()
             self._fitness.evaluate(self._population)
+            for callback in callbacks:
+                callback.on_generation_start(self._population)
+            offspring = Population()
             selected = self._operations["selection"](
                 self._population
             )
+            for callback in callbacks:
+                callback.on_selection(selected)
             offspring.populate(self._operations["reproduction"](
                 selected
             ))
+            for callback in callbacks:
+                callback.on_reproduction(offspring)
             self._population = self._operations["mutation"](
                 offspring
             )
+            for callback in callbacks:
+                callback.on_mutation(self._population)
             self._generation += 1
+            for callback in callbacks:
+                callback.on_generation_end(self._population)
+        self._fitness.evaluate(self._population)
+        for callback in callbacks:
+            callback.on_end(self._population)

@@ -32,7 +32,9 @@ env.use(peal.operations.mutation.uniform_int(prob=0.05, lowest=0, highest=100))
 env.use(peal.operations.reproduction.crossover(npoints=2, prob=0.7))
 env.use(peal.operations.selection.tournament(size=3))
 
-env.evolve(ngen=50)
+tracker = peal.evaluation.FitnessTracker()
+
+env.evolve(ngen=50, callbacks=[tracker])
 
 fitness.evaluate(env._population)
 
@@ -43,3 +45,15 @@ print("\n\n")
 
 for i in env._population:
     print(i.genes)
+
+print(f"Best fitness: {tracker.best}")
+print(f"Average fitness: {tracker.average}")
+print(f"Worst fitness: {tracker.worst}")
+
+import matplotlib.pyplot as plt
+
+plt.plot(tracker.best, label="best")
+plt.plot(tracker.average, label="average")
+plt.plot(tracker.worst, label="worst")
+plt.legend(loc="best")
+plt.show()
