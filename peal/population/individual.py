@@ -43,3 +43,6 @@ class Individual:
     def copy(self) -> "Individual":
         """Creates and returns a shallow copy of this individual."""
         return Individual(self._genes.copy())
+
+    def __repr__(self) -> str:
+        return f"Individual(fitness={self._fitness}, genes={self._genes})"

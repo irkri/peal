@@ -1,11 +1,10 @@
-import peal.environment
-import peal.operations
-import peal.individual
+import peal.core
 import peal.evaluation
+import peal.operations
+import peal.population
 
-from peal.environment.base import Environment
-from peal.environment.population import Population
+from peal.core import SynchronousProcess
 
-from peal.individual.base import Individual
+from peal.evaluation import Fitness, fitness
 
-from peal.evaluation.fitness import Fitness
+from peal.population import Breeder, Individual, Population, breeder

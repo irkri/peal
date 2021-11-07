@@ -4,8 +4,7 @@ from typing import Iterator
 
 import numpy as np
 
-from peal.environment.population import Population
-from peal.individual.base import Individual
+from peal.population import Individual, Population
 
 
 def straight(

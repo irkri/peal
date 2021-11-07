@@ -4,13 +4,14 @@ import inspect
 from functools import wraps
 from typing import Any, Callable, Union
 
-from peal.environment.population import Population
+from peal.population import Population
 
 
 OPERATION_MARK = "peal_op"
+FIXED_OPERATION_MARK = "peal_fixed"
 
-_Toperation = Callable[..., Population]
-_Toperationundetermined = Callable[..., Union[Population, _Toperation]]
+_Toperation = Callable[[Population], Population]
+_Toperationundetermined = Callable[..., _Toperation]
 _Toperationdecorator = Callable[
     [Callable[..., Population]],
     _Toperationundetermined
@@ -27,9 +28,28 @@ CATEGORIES = {
 }
 
 
-def check_marked(operator: _Toperationundetermined) -> str:
-    if OPERATION_MARK not in operator.__dict__:
-        raise ValueError("Invalid operator. Did you use a decorator?")
+def check_operation(operator: Callable) -> str:
+    """Checks if the given callable was successfully decorated and fixed
+    as an operation.
+    This can be done be using the decorator :meth:`operation`.
+
+    Args:
+        operator (callable): The function to check.
+
+    Raises:
+        ValueError: If at least one of the mentioned criteria are not
+            fulfilled.
+
+    Returns:
+        str: Category the decorator belongs to.
+    """
+    if (OPERATION_MARK not in operator.__dict__
+            or FIXED_OPERATION_MARK not in operator.__dict__
+            or operator.__name__ not in CATEGORIES[
+                operator.__dict__[OPERATION_MARK]]
+            or not operator.__dict__[FIXED_OPERATION_MARK]):
+        raise ValueError("Invalid or non-fixed operator. Did you use a "
+                         "decorator for declaring the operation?")
     return operator.__dict__[OPERATION_MARK]
 
 
@@ -81,12 +101,19 @@ def _check_operator_arguments(
     return kwargs_
 
 
-def _register(category: str, function: _Toperation):
+def _register(category: str, function: _Toperationundetermined):
     if function.__name__ in CATEGORIES[category]:
         raise RuntimeError(f"{category} operator with same name already "
                            "registered")
     CATEGORIES[category][function.__name__] = function
     function.__dict__[OPERATION_MARK] = category
+    function.__dict__[FIXED_OPERATION_MARK] = False
+
+
+def _register_as_fixed(function: _Toperation):
+    if OPERATION_MARK not in function.__dict__:
+        raise TypeError("Function is not a registered operation")
+    function.__dict__[FIXED_OPERATION_MARK] = True
 
 
 def operation(category: str) -> _Toperationdecorator:
@@ -112,15 +139,18 @@ def operation(category: str) -> _Toperationdecorator:
         _register(category, func)
 
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Union[Population, _Toperation]:
+        def wrapper(*args, **kwargs) -> _Toperation:
             given = _check_operator_arguments(args, kwargs, defaults)
             if isinstance(given, Population):
-                return func(given)
+                raise RuntimeError("Cannot call undetermined operation. "
+                                   "Please call the operator once before "
+                                   "passing it to a process.")
+            _register_as_fixed(func)
 
             @wraps(func)
-            def _blueprint(population: Population) -> Population:
+            def _operation_blueprint(population: Population) -> Population:
                 return func(population, **given)
-            return _blueprint
+            return _operation_blueprint
         return wrapper
 
     return _selection

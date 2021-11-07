@@ -1,6 +1,6 @@
 """Module that implements the base callback class."""
 
-from peal.environment.population import Population
+from peal.population import Population
 
 
 class Callback:
@@ -30,29 +30,31 @@ class Callback:
         """Will be called at the end of an evolutionary process."""
 
 
-class FitnessTracker(Callback):
-    """Class that tracks information on the fitness of individuals in
-    the population.
+class BestWorstTracker(Callback):
+    """Class that tracks the best and worst individuals in an
+    evolutionary process for each generation.
+
+    Attributes:
+        best (Population): A population containing the best individuals
+            (based on fitness) from each generation. Populations are
+            ordered containers and in this case the order depends on the
+            generations already passed.
+        worst (Population): A population containing the worst
+            individuals from each generation.
     """
 
     def __init__(self):
-        self.best: list[float] = []
-        self.average: list[float] = []
-        self.worst: list[float] = []
+        self.best: Population = Population()
+        self.worst: Population = Population()
 
     def on_start(self, population: Population):
-        self.best = []
-        self.average = []
-        self.worst = []
+        self.best = Population()
+        self.worst = Population()
 
     def on_generation_start(self, population: Population):
-        fitness = [indiv.fitness for indiv in population]
-        self.best.append(max(fitness))
-        self.average.append(sum(fitness)/population.size)
-        self.worst.append(min(fitness))
+        self.best.populate(max(population, key=lambda ind: ind.fitness))
+        self.worst.populate(min(population, key=lambda ind: ind.fitness))
 
     def on_end(self, population: Population):
-        fitness = [indiv.fitness for indiv in population]
-        self.best.append(max(fitness))
-        self.average.append(sum(fitness)/population.size)
-        self.worst.append(min(fitness))
+        self.best.populate(max(population, key=lambda ind: ind.fitness))
+        self.worst.populate(min(population, key=lambda ind: ind.fitness))

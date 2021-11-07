@@ -1,6 +1,6 @@
 """Module that implements common selection operations."""
 
-from peal.environment.population import Population
+from peal.population import Population
 from peal.operations.config import operation
 from peal.operations.iteration import random_batches
 

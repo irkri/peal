@@ -4,7 +4,7 @@
 
 from typing import Union
 
-from peal.individual.base import Individual
+from peal.population.individual import Individual
 
 
 class Population:
@@ -25,6 +25,13 @@ class Population:
         """Returns the number of individuals in the population."""
         return len(self._individuals)
 
+    @property
+    def fitness(self) -> list[float]:
+        """Returns the fitness of all individuals in the population as
+        a list of floats.
+        """
+        return [ind.fitness for ind in self._individuals]
+
     def populate(self, *individuals: Union[Individual, "Population"]):
         """Add individuals to the population.
 
@@ -42,6 +49,21 @@ class Population:
             else:
                 raise TypeError("Can only append individuals to a population")
 
+    def summary(self, max_lines: int = 4) -> str:
+        string = f"Population ({self.size} Individuals)\n"
+        if self.size <= max_lines:
+            for ind in self._individuals[:-1]:
+                string += "  + " + str(ind) + "\n"
+            string += "  + " + str(self._individuals[-1])
+        else:
+            for ind in self._individuals[:int(max_lines / 2)+(max_lines % 2)]:
+                string += "  + " + str(ind) + "\n"
+            string += "   ...\n"
+            for ind in self._individuals[-int(max_lines / 2):-1]:
+                string += "  + " + str(ind) + "\n"
+            string += "  + " + str(self._individuals[-1])
+        return string
+
     def __iter__(self) -> "Population":
         self._iter_id = -1
         return self
@@ -54,3 +76,9 @@ class Population:
 
     def __getitem__(self, key):
         return self._individuals.__getitem__(key)
+
+    def __str__(self) -> str:
+        return self.summary()
+
+    def __repr__(self) -> str:
+        return f"Population(size={self.size})"

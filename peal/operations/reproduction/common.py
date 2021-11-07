@@ -1,8 +1,8 @@
 """Module that implements common reproduction operations."""
 
 import numpy as np
-from peal.environment.population import Population
 
+from peal.population import Population
 from peal.operations.config import operation
 from peal.operations.iteration import straight
 
