@@ -34,8 +34,11 @@ def uniform_int(
     result = Population()
     for ind in iterator:
         new_ind = ind.copy()
-        for i in range(len(ind.genes)):
-            if np.random.random_sample() <= prob:
-                new_ind.genes[i] = np.random.randint(lowest, highest+1)
+        hits = np.where(np.random.random_sample(len(ind.genes)) <= prob)[0]
+        new_ind.genes[hits] = np.random.randint(
+            lowest,
+            highest+1,
+            size=len(hits)
+        )
         result.populate(new_ind)
     return result

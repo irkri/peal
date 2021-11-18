@@ -40,6 +40,9 @@ class Fitness:
         elif isinstance(population, Individual):
             population.fitness = self._method(population)
 
+    def __call__(self, population: Union[Individual, Population]):
+        self.evaluate(population)
+
 
 def fitness(method: Callable[[Individual], float]) -> Fitness:
     """Decorator for a fitness method.

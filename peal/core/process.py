@@ -2,7 +2,6 @@
 algorithm.
 """
 
-from abc import abstractmethod
 from typing import Optional
 
 from peal.population import Breeder, Population
@@ -11,19 +10,9 @@ from peal.evaluation.fitness import Fitness
 from peal.operations.config import _Toperation, check_operation
 
 
-class Process:
-    """Abstract class for an evaluationary process that defines the
-    structure of any such process.
-    """
-
-    @abstractmethod
-    def start(self) -> Population:
-        """Start the evolutionary process and returns a population."""
-
-
-class SynchronousProcess(Process):
+class SynchronousProcess:
     """This synchronous process (also called generational process)
-    mimics the most popular genetical algorithm that uses selection,
+    mimics the most popular genetic algorithm that uses selection,
     mutation and reproduction operations to manipulate an existing
     population for each new generation.
 
@@ -58,18 +47,15 @@ class SynchronousProcess(Process):
         self._mutation = mutation
         self._breeder = breeder
         self._fitness = fitness
-        self._callbacks: list[Callback] = []
-        self._ngen: int = 0
-        self._pop_size: int = 0
         self._generation: int = 0
 
-    def prepare(
+    def start(
         self,
         population_size: int,
         ngen: int,
         callbacks: Optional[list[Callback]] = None,
-    ):
-        """Prepares the process by initializing the population.
+    ) -> Population:
+        """Start the evolutionary process.
 
         Args:
             population_size (int): Number of individuals to start with.
@@ -77,48 +63,46 @@ class SynchronousProcess(Process):
                 ``self.start()``.
             callbacks (list[Callback], optional): Optional list of
                 callbacks that are used in the process.
+
+        Returns:
+            Population: A population after the last generation finished.
         """
-        self._pop_size = population_size
-        self._ngen = ngen
         if callbacks is not None:
             for callback in callbacks:
                 if not isinstance(callback, Callback):
                     raise TypeError("Callback has unexpected type "
                                     f"{type(callback)}")
-                self._callbacks.append(callback)
-
-    def start(self) -> Population:
         population = Population()
-        population.populate(self._breeder.breed(self._pop_size))
-        for callback in self._callbacks:
+        population.populate(self._breeder.breed(population_size))
+        for callback in callbacks:
             callback.on_start(population)
 
-        for _ in range(self._ngen):
+        for _ in range(ngen):
             self._fitness.evaluate(population)
 
-            for callback in self._callbacks:
+            for callback in callbacks:
                 callback.on_generation_start(population)
 
             offspring = Population()
             selected = self._selection(population)
-            for callback in self._callbacks:
+            for callback in callbacks:
                 callback.on_selection(selected)
 
             offspring.populate(self._reproduction(selected))
-            for callback in self._callbacks:
+            for callback in callbacks:
                 callback.on_reproduction(offspring)
 
             if self._mutation is not None:
                 population = self._mutation(offspring)
-            for callback in self._callbacks:
+            for callback in callbacks:
                 callback.on_mutation(population)
 
             self._generation += 1
-            for callback in self._callbacks:
+            for callback in callbacks:
                 callback.on_generation_end(population)
 
         self._fitness.evaluate(population)
-        for callback in self._callbacks:
+        for callback in callbacks:
             callback.on_end(population)
 
         return population

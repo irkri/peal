@@ -29,6 +29,9 @@ class Breeder:
             population.populate(self._method())
         return population
 
+    def __call__(self) -> Population:
+        return self.breed()
+
 
 def breeder(method: Callable[[], Individual]) -> Breeder:
     """Decorator for a breeding method.
