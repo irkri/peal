@@ -4,10 +4,12 @@ algorithm.
 
 from typing import Optional
 
-from peal.population import Breeder, Population
 from peal.evaluation.callback import Callback
 from peal.evaluation.fitness import Fitness
-from peal.operations.config import _Toperation, check_operation
+from peal.operations.mutation.base import MutationOperator
+from peal.operations.reproduction.base import ReproductionOperator
+from peal.operations.selection.base import SelectionOperator
+from peal.population import Breeder, Population
 
 
 class SynchronousProcess:
@@ -32,18 +34,12 @@ class SynchronousProcess:
         self,
         breeder: Breeder,
         fitness: Fitness,
-        selection: _Toperation,
-        reproduction: _Toperation,
-        mutation: Optional[_Toperation] = None,
+        selection: SelectionOperator,
+        reproduction: ReproductionOperator,
+        mutation: Optional[MutationOperator] = None,
     ):
-        if check_operation(selection) != "selection":
-            raise TypeError(f"Not a selection operation: {selection!r}")
         self._selection = selection
-        if check_operation(reproduction) != "reproduction":
-            raise TypeError(f"Not a reproduction operation: {reproduction!r}")
         self._reproduction = reproduction
-        if mutation is not None and check_operation(mutation) != "mutation":
-            raise TypeError(f"Not a mutation operation: {mutation!r}")
         self._mutation = mutation
         self._breeder = breeder
         self._fitness = fitness
@@ -67,11 +63,12 @@ class SynchronousProcess:
         Returns:
             Population: A population after the last generation finished.
         """
-        if callbacks is not None:
-            for callback in callbacks:
-                if not isinstance(callback, Callback):
-                    raise TypeError("Callback has unexpected type "
-                                    f"{type(callback)}")
+        if callbacks is None:
+            callbacks = []
+        for callback in callbacks:
+            if not isinstance(callback, Callback):
+                raise TypeError("Callback has unexpected type "
+                                f"{type(callback)}")
         population = Population()
         population.populate(self._breeder.breed(population_size))
         for callback in callbacks:

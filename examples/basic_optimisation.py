@@ -21,24 +21,22 @@ def evaluate(individual: peal.Individual) -> float:
 process = peal.SynchronousProcess(
     breeder=create,
     fitness=evaluate,
-    selection=peal.operations.selection.tournament(size=3),
-    mutation=peal.operations.mutation.uniform_int(
-        prob=0.05,
+    selection=peal.operations.selection.Tournament(size=3),
+    mutation=peal.operations.mutation.UniformInt(
+        prob=0.01,
         lowest=0,
         highest=100
     ),
-    reproduction=peal.operations.reproduction.crossover(npoints=2, prob=0.7)
+    reproduction=peal.operations.reproduction.Crossover(npoints=2, prob=0.7)
 )
 
 tracker = peal.evaluation.BestWorstTracker()
 
-process.prepare(
+process.start(
     population_size=100,
-    ngen=50,
+    ngen=100,
     callbacks=[tracker]
 )
-
-process.start()
 
 print(f"Best fitness: {tracker.best}")
 print(f"Worst fitness: {tracker.worst}")
