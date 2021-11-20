@@ -20,7 +20,7 @@ class Tournament(SelectionOperator):
     def process(self, population: Population) -> Population:
         iterator = random_batches(
             population,
-            n=population.size,
+            total=population.size,
             size=self._size
         )
         result = Population()

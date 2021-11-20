@@ -4,8 +4,8 @@ from peal.population import Population
 
 
 class Callback:
-    """Base class for all callbacks used in an
-    :class:`~peal.environment.base.Environment`.
+    """Base class for all callbacks that can be used in evolutionary
+    process.
     """
 
     def on_start(self, population: Population):
@@ -14,17 +14,8 @@ class Callback:
     def on_generation_start(self, population: Population):
         """Will be called at the start of each generation."""
 
-    def on_selection(self, population: Population):
-        """Will be called after all selection operations."""
-
-    def on_reproduction(self, population: Population):
-        """Will be called after all reproduction operations."""
-
-    def on_mutation(self, population: Population):
-        """Will be called after all mutation operations."""
-
     def on_generation_end(self, population: Population):
-        """Will be called at the end of an evolutionary process."""
+        """Will be called at the end of each generation."""
 
     def on_end(self, population: Population):
         """Will be called at the end of an evolutionary process."""
@@ -51,10 +42,6 @@ class BestWorstTracker(Callback):
         self.best = Population()
         self.worst = Population()
 
-    def on_generation_start(self, population: Population):
-        self.best.populate(max(population, key=lambda ind: ind.fitness))
-        self.worst.populate(min(population, key=lambda ind: ind.fitness))
-
-    def on_end(self, population: Population):
+    def on_generation_end(self, population: Population):
         self.best.populate(max(population, key=lambda ind: ind.fitness))
         self.worst.populate(min(population, key=lambda ind: ind.fitness))

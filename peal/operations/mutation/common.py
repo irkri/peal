@@ -24,9 +24,9 @@ class BitFlip(MutationOperator):
         result = Population()
         for ind in iterator:
             new_ind = ind.copy()
-            for i in range(len(ind.genes)):
+            for i, gene in enumerate(ind.genes):
                 if np.random.random_sample() <= self._prob:
-                    new_ind.genes[i] = not ind.genes[i]
+                    new_ind.genes[i] = not gene
             result.populate(new_ind)
         return result
 

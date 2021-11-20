@@ -1,10 +1,17 @@
 import peal.core
-import peal.evaluation
-import peal.operations
-import peal.population
-
 from peal.core import SynchronousProcess
 
-from peal.evaluation import Fitness, fitness
+import peal.evaluation
+from peal.evaluation import (
+    fitness,
+)
 
-from peal.population import Breeder, Individual, Population, breeder
+import peal.operations
+
+import peal.population
+from peal.population import (
+    breeder,
+    OneDimBreeder,
+    Individual,
+    Population,
+)

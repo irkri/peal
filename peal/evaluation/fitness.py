@@ -36,7 +36,8 @@ class Fitness:
         """
         if isinstance(population, Population):
             for ind in population:
-                ind.fitness = self._method(ind)
+                if not ind.fitted:
+                    ind.fitness = self._method(ind)
         elif isinstance(population, Individual):
             population.fitness = self._method(population)
 

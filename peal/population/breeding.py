@@ -2,6 +2,8 @@
 
 from typing import Callable
 
+import numpy as np
+
 from peal.population.population import Population
 from peal.population.individual import Individual
 
@@ -43,3 +45,32 @@ def breeder(method: Callable[[], Individual]) -> Breeder:
     and return types as described in the mentioned class.
     """
     return Breeder(method=method)
+
+
+class OneDimBreeder(Breeder):
+    """Breeder that creates individuals with random genes placed in a
+    one dimensional numpy array.
+
+    Args:
+        size (int): Number of genes the resulting individual will have.
+        lower (int, optional): The lowest number a gene of this type can
+            have (included). Defaults to 0.
+        upper (int, optional): The highest number a gene of this type
+            can have (included). Defaults to 1.
+    """
+
+    def __init__(
+        self,
+        size: int,
+        lower: int = 0,
+        upper: int = 1,
+    ):
+        self._size = size
+        self._lower = lower
+        self._upper = upper
+
+    def _method(self):
+        # overrides the default argument _method of the base class
+        return Individual(
+            np.random.randint(self._lower, self._upper+1, self._size)
+        )

@@ -10,7 +10,7 @@ class Operator(ABC):
 
     @abstractmethod
     def process(self, population: Population) -> Population:
-        ...
+        """Processes a given population with the operator."""
 
     def __call__(self, population: Population) -> Population:
         return self.process(population)

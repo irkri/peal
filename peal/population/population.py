@@ -50,6 +50,13 @@ class Population:
                 raise TypeError("Can only append individuals to a population")
 
     def summary(self, max_lines: int = 4) -> str:
+        """Returns a summary of the population as a string.
+
+        Args:
+            max_lines (int, optional): Maximal number of lines the
+                string spans over. This allows to display some
+                Individuals from the population. Defaults to 4.
+        """
         string = f"Population ({self.size} Individuals)\n"
         if self.size <= max_lines:
             for ind in self._individuals[:-1]:
@@ -64,6 +71,13 @@ class Population:
             string += "  + " + str(self._individuals[-1])
         return string
 
+    def copy(self) -> "Population":
+        """Returns a copy of this population without copying the
+        individuals."""
+        copy = Population()
+        copy.populate(self)
+        return copy
+
     def __iter__(self) -> "Population":
         self._iter_id = -1
         return self
@@ -75,7 +89,14 @@ class Population:
         return self._individuals[self._iter_id]
 
     def __getitem__(self, key):
+        if isinstance(key, slice):
+            return Population(*self._individuals.__getitem__(key))
         return self._individuals.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            return Population(*self._individuals.__setitem__(key, value))
+        return self._individuals.__setitem__(key, value)
 
     def __str__(self) -> str:
         return self.summary()
