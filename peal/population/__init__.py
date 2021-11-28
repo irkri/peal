@@ -1,7 +1,7 @@
 from peal.population.breeding import (
     breeder,
     Breeder,
-    OneDimBreeder,
+    IntegerBreeder,
 )
 
 from peal.population.individual import Individual

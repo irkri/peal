@@ -4,6 +4,8 @@
 
 from typing import Union
 
+import numpy as np
+
 from peal.population.individual import Individual
 
 
@@ -31,6 +33,13 @@ class Population:
         a list of floats.
         """
         return [ind.fitness for ind in self._individuals]
+
+    @property
+    def genes(self) -> np.ndarray:
+        """Returns the genes of all individuals in the population as
+        a multidimensional numpy array.
+        """
+        return np.array([ind.genes for ind in self._individuals])
 
     def populate(self, *individuals: Union[Individual, "Population"]):
         """Add individuals to the population.

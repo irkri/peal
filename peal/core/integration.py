@@ -73,11 +73,12 @@ class CrowdedIntegration(IntegrationTechnique):
         offspring: Population,
         parents: Population,
     ) -> Population:
-        """Merges the individuals of offspring and parents into a new
-        population of same size as the parent population. This technique
-        prefers the offspring. If individuals are missing after the
-        offspring merged, parents will be drawn (in the order they
-        appear in ``parents``) until the desired size is reached.
+        """Merges the given offspring and parent population. Each
+        offspring will be compared to a number of random individuals
+        from the parent population corresponding to the initialized
+        crowding factor. The parent that has the most similarities
+        (i.e. smallest hamming distance) will be replaced by this
+        offspring.
 
         Args:
             offspring (Population): The offspring population.
@@ -98,7 +99,7 @@ class CrowdedIntegration(IntegrationTechnique):
             best_distance = np.sum(parents[compare[0]].genes == off.genes)
             for index in compare:
                 if ((dist := np.sum(parents[index].genes == off.genes))
-                        < best_distance):
+                        > best_distance):
                     best_distance = dist
                     best = index
             merged[best] = off.copy()

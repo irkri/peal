@@ -20,19 +20,20 @@ class Breeder:
     def __init__(self, method: Callable[[], Individual]):
         self._method = method
 
-    def breed(self, size: int) -> Population:
+    def breed(self, size: int = 1) -> Population:
         """Returns a population of given size using the given method.
 
         Args:
-            size (int): Number of individuals to breed.
+            size (int, optional): Number of individuals to breed.
+                Defaults to 1.
         """
         population = Population()
         for _ in range(size):
             population.populate(self._method())
         return population
 
-    def __call__(self) -> Population:
-        return self.breed()
+    def __call__(self, size: int = 1) -> Population:
+        return self.breed(size)
 
 
 def breeder(method: Callable[[], Individual]) -> Breeder:
@@ -47,9 +48,9 @@ def breeder(method: Callable[[], Individual]) -> Breeder:
     return Breeder(method=method)
 
 
-class OneDimBreeder(Breeder):
-    """Breeder that creates individuals with random genes placed in a
-    one dimensional numpy array.
+class IntegerBreeder(Breeder):
+    """Breeder that creates individuals with random integer genes placed
+    in a one dimensional numpy array.
 
     Args:
         size (int): Number of genes the resulting individual will have.
@@ -65,12 +66,6 @@ class OneDimBreeder(Breeder):
         lower: int = 0,
         upper: int = 1,
     ):
-        self._size = size
-        self._lower = lower
-        self._upper = upper
-
-    def _method(self):
-        # overrides the default argument _method of the base class
-        return Individual(
-            np.random.randint(self._lower, self._upper+1, self._size)
+        super().__init__(
+            lambda: Individual(np.random.randint(lower, upper+1, size))
         )

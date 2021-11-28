@@ -11,7 +11,7 @@ import peal.operations
 import peal.population
 from peal.population import (
     breeder,
-    OneDimBreeder,
+    IntegerBreeder,
     Individual,
     Population,
 )
