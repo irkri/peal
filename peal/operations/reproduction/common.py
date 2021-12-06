@@ -1,51 +1,52 @@
 """Module that implements common reproduction operations."""
 
+from typing import Union
+
 import numpy as np
 
 from peal.operations.reproduction.base import ReproductionOperator
-from peal.population import Population
-from peal.operations.iteration import straight
+from peal.population import Individual
 
 
 class Crossover(ReproductionOperator):
     """Crossover reproduction operator.
 
     Args:
-        prob (float, optional): The probability of a crossover
-            happening. Defaults to 1.0.
         npoints (int, optional): The number of points to use for the
             gene split in the crossover operation. Defaults to 2.
+        probability (float): The probability of performing the crossover
+            operation.
     """
 
-    def __init__(self, prob: float = 1.0, npoints: int = 2):
-        self._prob = prob
+    def __init__(self, npoints: int = 2, probability: float = 0.5):
+        super().__init__(2, 2, probability)
         self._npoints = npoints
 
-    def process(self, population: Population) -> Population:
-        iterator = straight(population, batch_size=2)
-        offspring = Population()
-        for ind1, ind2 in iterator:
-            off1 = ind1.copy()
-            off2 = ind2.copy()
-            if np.random.random_sample() <= self._prob:
-                points = np.insert(
-                    np.sort(
-                        np.random.randint(
-                            1,
-                            len(ind1.genes),
-                            size=self._npoints
-                        )
-                    ),
-                    [0, -1],
-                    [0, len(ind1.genes)]
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, tuple):
+            raise TypeError("Crossover expects a tuple of individuals")
+
+        points = np.insert(
+            np.sort(
+                np.random.randint(
+                    1,
+                    len(individuals[0].genes),
+                    size=self._npoints
                 )
-                start = self._npoints % 2
-                for i in range(start, self._npoints+(1-start), 2):
-                    off1.genes[points[i]:points[i+1]] = ind2.genes[
-                        points[i]:points[i+1]
-                    ]
-                    off2.genes[points[i]:points[i+1]] = ind1.genes[
-                        points[i]:points[i+1]
-                    ]
-            offspring.populate(off1, off2)
-        return offspring
+            ),
+            [0, -1],
+            [0, len(individuals[0].genes)]
+        )
+        start = self._npoints % 2
+        off1, off2 = individuals[0].copy(), individuals[1].copy()
+        for i in range(start, self._npoints+(1-start), 2):
+            off1.genes[points[i]:points[i+1]] = individuals[1].genes[
+                points[i]:points[i+1]
+            ]
+            off2.genes[points[i]:points[i+1]] = individuals[0].genes[
+                points[i]:points[i+1]
+            ]
+        return off1, off2

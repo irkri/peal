@@ -21,9 +21,12 @@ process = peal.SynchronousProcess(
     mutation=peal.operations.mutation.UniformInt(
         prob=0.01,
         lowest=0,
-        highest=100
+        highest=100,
     ),
-    reproduction=peal.operations.reproduction.Crossover(npoints=1, prob=0.7),
+    reproduction=peal.operations.reproduction.Crossover(
+        npoints=1,
+        probability=0.7
+    ),
 )
 
 crowded_process = peal.SynchronousProcess(
@@ -33,15 +36,20 @@ crowded_process = peal.SynchronousProcess(
     mutation=peal.operations.mutation.UniformInt(
         prob=0.01,
         lowest=0,
-        highest=100
+        highest=100,
     ),
-    reproduction=peal.operations.reproduction.Crossover(npoints=1, prob=0.7),
+    reproduction=peal.operations.reproduction.Crossover(
+        npoints=1,
+        probability=0.7
+    ),
     integration=peal.core.integration.CrowdedIntegration(10),
 )
 
 tracker = peal.evaluation.BestWorstTracker()
 statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
-crowded_statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
+crowded_statistics = peal.evaluation.DiversityStatistics(
+    allele=np.arange(1, 101)
+)
 crowded_tracker = peal.evaluation.BestWorstTracker()
 
 process.start(

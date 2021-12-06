@@ -1,8 +1,10 @@
 """Module that implements common selection operations."""
 
+from typing import Union
+from peal.operations.iteration import NRandomBatchesIteration
+
 from peal.operations.selection.base import SelectionOperator
-from peal.population import Population
-from peal.operations.iteration import random_batches
+from peal.population import Individual
 
 
 class Tournament(SelectionOperator):
@@ -15,16 +17,18 @@ class Tournament(SelectionOperator):
     """
 
     def __init__(self, size: int = 2):
-        self._size = size
-
-    def process(self, population: Population) -> Population:
-        iterator = random_batches(
-            population,
-            total=population.size,
-            size=self._size
+        super().__init__(
+            size,
+            1,
+            NRandomBatchesIteration(batch_size=size),
         )
-        result = Population()
-        for tourn in iterator:
-            best = max(tourn, key=lambda x: x.fitness)
-            result.populate(best.copy())
-        return result
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if isinstance(individuals, Individual):
+            return individuals
+
+        best = max(individuals, key=lambda x: x.fitness).copy()
+        return best

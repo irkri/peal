@@ -1,7 +1,6 @@
 """Module that implements the base callback class."""
 
 import numpy as np
-import numpy.typing as npt
 
 from peal.population import Population
 
@@ -65,12 +64,12 @@ class DiversityStatistics(Callback):
             ``allele.size/(allele.size-1)``.
     """
 
-    def __init__(self, allele: npt.NDArray[float]):
+    def __init__(self, allele: np.ndarray):
         self._allele = allele
-        self.gene_diversity: npt.NDArray[float] = np.empty((0, 1), dtype=float)
+        self.gene_diversity: np.ndarray = np.empty((0, 1), dtype=float)
 
     @property
-    def diversity(self) -> npt.NDArray[float]:
+    def diversity(self) -> np.ndarray:
         """Scaled average gene diversity as a float between 0 and 1."""
         return (
             self._allele.size / (self._allele.size-1)

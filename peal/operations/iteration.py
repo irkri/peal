@@ -1,56 +1,141 @@
 """Module that defines certain iteration methods for populations."""
 
-from typing import Iterator
+from abc import abstractmethod
+from typing import Iterator, Optional, Union
 
 import numpy as np
 
 from peal.population import Individual, Population
 
 
-def straight(
-    population: Population,
-    batch_size: int = 1,
-) -> Iterator[list[Individual]]:
-    """Returns an iterator over the given population that returns
-    a number of individuals at a time.
-
-    Args:
-        population (Population): Population to iterate over.
-        batch_size (int, optional): Number of individuals returned in
-            one batch. Defaults to 1.
-    """
-    for i in range(0, population.size, batch_size):
-        yield population[i:i+batch_size]
-
-
-def every(
-    population: Population,
-) -> Iterator[Individual]:
-    """Returns an iterator over every individual in the given
+class IterationType:
+    """Abstract class for a instruction how to iterate over a
     population.
-
-    Args:
-        population (Population): Population to iterate over.
     """
-    for i in range(population.size):
-        yield population[i]
+
+    def __init__(self, output_size: int):
+        self._out_size = output_size
+
+    @abstractmethod
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        """Returns an iterator over the given population. The iterator
+        contains individuals or tuples of individuals.
+        """
 
 
-def random_batches(
-    population: Population,
-    total: int = 1,
-    size: int = 2,
-) -> Iterator[list[Individual]]:
-    """Returns an iterator over the given population that returns a
-    number of randomly selected batches of a given size.
+class SingleIteration(IterationType):
+    """Class that iterates over single individuals in a population the
+    same order they appear.
+    """
+
+    def __init__(self):
+        super().__init__(1)
+
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        for i in range(population.size):
+            yield population[i]
+
+
+class RandomSingleIteration(IterationType):
+    """Class that iterates over single individuals in a population the
+    same order they appear.
 
     Args:
-        population (Population): Population to iterate over.
-        total (int, optional): Number of random batches to return.
-            Defaults to 1.
+        probability (float): The probability that a single individual is
+            returned.
+    """
+
+    def __init__(self, probability: float):
+        super().__init__(1)
+        self._probability = probability
+
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        for i in range(population.size):
+            yield population[i]
+
+
+class StraightIteration(IterationType):
+    """Class that performes a straight iteration over a population. That
+    means that for a given batch size, in each iteration this number of
+    individuals is returned. The individuals are located within the
+    population in the same order they are returned.
+
+    Args:
+        batch_size (int) : The number of individuals to return at once.
+    """
+
+    def __init__(self, batch_size: int):
+        super().__init__(batch_size)
+        self._batch_size = batch_size
+
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        for i in range(0, population.size, self._batch_size):
+            yield tuple(population[i:i+self._batch_size])
+
+
+class RandomStraightIteration(IterationType):
+    """Class that performes the same straight iteration as
+    :class:`StraightIteration` but returns each batch only with a
+    certain probability.
+
+    Args:
+        batch_size (int): The number of individuals to return at once.
+        probability (float): The probability that each batch is returned
+            with.
+    """
+
+    def __init__(self, batch_size: int, probability: float):
+        super().__init__(batch_size)
+        self._batch_size = batch_size
+        self._probability = probability
+
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        for i in range(0, population.size, self._batch_size):
+            if np.random.random_sample() <= self._probability:
+                yield tuple(population[i:i+self._batch_size])
+
+
+class NRandomBatchesIteration(IterationType):
+    """Class that iterates over the given population by yielding a
+    specified number of randomly selected batches of a given size.
+
+    Args:
         size (int, optional): Size of each batch returned by the
-            iterator.
+            iterator. Defaults to 1.
+        total (int, optional): Number of random batches to return.
+            If set to None, the number of returned batches is equal to
+            the size of the input population. Defaults to None.
     """
-    for _ in range(total):
-        indices = np.random.choice(population.size, size=size, replace=False)
-        yield [population[i] for i in indices]
+
+    def __init__(self, batch_size: int = 1, total: Optional[int] = None):
+        super().__init__(batch_size)
+        self._batch_size = batch_size
+        self._total = total
+
+    def iterate(
+        self,
+        population: Population,
+    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+        total = self._total if self._total is not None else population.size
+        for _ in range(total):
+            indices = np.random.choice(
+                population.size,
+                size=self._batch_size,
+                replace=False
+            )
+            yield tuple(population[i] for i in indices)

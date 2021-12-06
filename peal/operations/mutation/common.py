@@ -1,10 +1,11 @@
 """Module that implements common mutation operations."""
 
+from typing import Union
+
 import numpy as np
 
 from peal.operations.mutation.base import MutationOperator
-from peal.population import Population
-from peal.operations.iteration import every
+from peal.population import Individual
 
 
 class BitFlip(MutationOperator):
@@ -17,18 +18,21 @@ class BitFlip(MutationOperator):
     """
 
     def __init__(self, prob: float = 0.5):
+        super().__init__(1, 1)
         self._prob = prob
 
-    def process(self, population: Population) -> Population:
-        iterator = every(population)
-        result = Population()
-        for ind in iterator:
-            new_ind = ind.copy()
-            for i, gene in enumerate(ind.genes):
-                if np.random.random_sample() <= self._prob:
-                    new_ind.genes[i] = not gene
-            result.populate(new_ind)
-        return result
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("BitFlip expects a single individual")
+
+        ind = individuals.copy()
+        for i, gene in enumerate(ind.genes):
+            if np.random.random_sample() <= self._prob:
+                ind.genes[i] = not gene
+        return ind
 
 
 class UniformInt(MutationOperator):
@@ -50,22 +54,25 @@ class UniformInt(MutationOperator):
         lowest: int = -1,
         highest: int = 1,
     ):
+        super().__init__(1, 1)
         self._prob = prob
         self._lowest = lowest
         self._highest = highest
 
-    def process(self, population: Population) -> Population:
-        iterator = every(population)
-        result = Population()
-        for ind in iterator:
-            new_ind = ind.copy()
-            hits = np.where(
-                np.random.random_sample(len(ind.genes)) <= self._prob
-            )[0]
-            new_ind.genes[hits] = np.random.randint(
-                self._lowest,
-                self._highest+1,
-                size=len(hits)
-            )
-            result.populate(new_ind)
-        return result
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("UniformInt expects a single individual")
+
+        ind = individuals.copy()
+        hits = np.where(
+            np.random.random_sample(len(ind.genes)) <= self._prob
+        )[0]
+        ind.genes[hits] = np.random.randint(
+            self._lowest,
+            self._highest+1,
+            size=len(hits)
+        )
+        return ind

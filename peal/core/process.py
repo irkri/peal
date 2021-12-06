@@ -104,10 +104,13 @@ class SynchronousProcess:
             selected = self._selection(population)
 
             offspring.populate(self._reproduction(selected))
-            population = self._integration.merge(offspring, selected)
+            population = self._integration.merge(
+                offspring,
+                selected,  # type: ignore
+            )
 
             if self._mutation is not None:
-                population = self._mutation(population)
+                population = self._mutation(population)  # type: ignore
 
             self._fitness.evaluate(population)
             self._generation += 1

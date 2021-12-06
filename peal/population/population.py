@@ -2,7 +2,7 @@
 :class:`~peal.environment.environment.Environment`.
 """
 
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -17,10 +17,16 @@ class Population:
         individuals (Individual): One or more individuals to add.
     """
 
-    def __init__(self, *individuals: Individual):
+    def __init__(
+        self,
+        individuals: Optional[
+            Union[Individual, tuple[Individual, ...], "Population"]
+        ] = None,
+    ):
         self._iter_id = -1
         self._individuals: list[Individual] = []
-        self.populate(*individuals)
+        if individuals is not None:
+            self.populate(individuals)
 
     @property
     def size(self) -> int:
@@ -41,22 +47,31 @@ class Population:
         """
         return np.array([ind.genes for ind in self._individuals])
 
-    def populate(self, *individuals: Union[Individual, "Population"]):
+    def populate(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...], "Population"],
+    ):
         """Add individuals to the population.
 
         Args:
-            individuals (Individual | Population): One or more
-                individuals to add or populations to add individuals
-                from.
+            individuals (Individual | tuple | Population): One or
+                a tuple of multiple individuals or a population of
+                individuals to fill this population with.
         """
-        for individual in individuals:
-            if isinstance(individual, Individual):
+        if isinstance(individuals, Individual):
+            self._individuals.append(individuals)
+        elif isinstance(individuals, tuple):
+            for individual in individuals:
+                if not isinstance(individual, Individual):
+                    raise TypeError("Can only append individuals to a "
+                                    f"population, got {type(individual)}")
                 self._individuals.append(individual)
-            elif isinstance(individual, Population):
-                for i in range(individual.size):
-                    self._individuals.append(individual[i])
-            else:
-                raise TypeError("Can only append individuals to a population")
+        elif isinstance(individuals, Population):
+            for individual in individuals:
+                self._individuals.append(individual)
+        else:
+            raise TypeError("Can only append individuals to a population, "
+                            f"got {type(individuals)}")
 
     def summary(self, max_lines: int = 4) -> str:
         """Returns a summary of the population as a string.
@@ -83,8 +98,7 @@ class Population:
     def copy(self) -> "Population":
         """Returns a copy of this population without copying the
         individuals."""
-        copy = Population()
-        copy.populate(self)
+        copy = Population(self)
         return copy
 
     def __iter__(self) -> "Population":
@@ -99,13 +113,11 @@ class Population:
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            return Population(*self._individuals.__getitem__(key))
+            return Population(tuple(self._individuals[key]))
         return self._individuals.__getitem__(key)
 
     def __setitem__(self, key, value):
-        if isinstance(key, slice):
-            return Population(*self._individuals.__setitem__(key, value))
-        return self._individuals.__setitem__(key, value)
+        self._individuals.__setitem__(key, value)
 
     def __str__(self) -> str:
         return self.summary()
