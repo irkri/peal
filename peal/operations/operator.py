@@ -48,19 +48,26 @@ class Operator(ABC):
         if isinstance(individuals, Population):
             return self.process_all(individuals)
 
-        if ((isinstance(individuals, Individual) and self._in_size != 1)
-                or (isinstance(individuals, list)
-                    and len(individuals) != self._in_size)):
+        if (isinstance(individuals, Individual)
+                and self._in_size != 1):
+            raise ValueError("Too many individuals given to the operator, "
+                             "expected 1")
+        if (isinstance(individuals, tuple)
+                and len(individuals) != self._in_size):
             raise ValueError("Incorrect number of individuals given to "
-                             f"the operator")
+                             f"the operator: {len(individuals)}, "
+                             f"expected {self._in_size}")
         out = self._process(individuals)
-        if not isinstance(out, Individual):
-            if not isinstance(out, list):
-                raise TypeError("Unknown type returned by the operator: "
-                                f"{type(out)}")
+        if isinstance(out, tuple):
             if len(out) != self._out_size:
                 raise ValueError("Incorrect number of individuals returned "
-                                 f"by operator: {len(individuals)}")
+                                 f"by the operator: {len(out)}, "
+                                 f"expected {self._out_size}")
+        elif isinstance(out, Individual) and self._out_size != 1:
+            raise ValueError("Not enough individuals returned by the operator")
+        elif not isinstance(out, Individual):
+            raise TypeError("Unknown type returned by the operator: "
+                            f"{type(out)}")
         return out
 
     def process_all(

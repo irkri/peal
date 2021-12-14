@@ -28,7 +28,38 @@ class Tournament(SelectionOperator):
         individuals: Union[Individual, tuple[Individual, ...]],
     ) -> Union[Individual, tuple[Individual, ...]]:
         if isinstance(individuals, Individual):
-            return individuals
+            return individuals.copy()
 
         best = max(individuals, key=lambda x: x.fitness).copy()
         return best
+
+
+class Best(SelectionOperator):
+    """A selection operator that returns the top ``out_size``
+    individuals.
+    """
+
+    def __init__(self, in_size: int, out_size: int):
+        if in_size < out_size:
+            raise ValueError("in_size must at least be as big as out_size")
+        super().__init__(
+            in_size,
+            out_size,
+            NRandomBatchesIteration(batch_size=in_size, total=1),
+        )
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if isinstance(individuals, Individual):
+            return individuals.copy()
+
+        sorted_individuals = tuple(
+            x.copy() for x in sorted(
+                individuals,
+                key=lambda x: x.fitness,
+                reverse=True,
+            )
+        )
+        return sorted_individuals[:self._out_size]

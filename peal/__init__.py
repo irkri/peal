@@ -1,5 +1,5 @@
 import peal.core
-from peal.core import SynchronousProcess
+from peal.core import SynchronousProcess, StrategyProcess
 
 import peal.evaluation
 from peal.evaluation import (

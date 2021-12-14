@@ -1,1 +1,1 @@
-from peal.core.process import SynchronousProcess
+from peal.core.process import SynchronousProcess, StrategyProcess
