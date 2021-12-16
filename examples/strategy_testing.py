@@ -3,14 +3,13 @@ import numpy as np
 
 import peal
 
-# individuals should have genes like this at the end of evolution
-A = np.array([4, 74, 43, 22, 100])
-B = np.array([8, 34, 65, 21, 99])
+A = np.array([4, 74, 43, 23, 0])
+B = np.array([8, 34, 65, 21, 100])
 
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
-    """Negative MSE of the individuals genes and A."""
+    """Negative MSE comparing individuals genes to A and B."""
     return -np.mean((A-individual.genes)**2) - np.mean((B-individual.genes)**2)
 
 
@@ -22,15 +21,17 @@ process = peal.StrategyProcess(
         lowest=0,
         highest=100,
     ),
-    signature="(5/2,10)"
+    signature="3/1,5(2/2,14)^10"
 )
 
 tracker = peal.evaluation.BestWorstTracker()
 statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
 process.start(
-    ngen=100,
+    ngen=5,
     callbacks=[tracker, statistics]
 )
+
+print(tracker.best)
 
 # - plotting -
 
