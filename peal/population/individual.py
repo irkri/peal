@@ -17,6 +17,7 @@ class Individual:
     def __init__(self, genes: np.ndarray):
         self._genes = genes
         self._fitness: float = 0.0
+        self.fitted: bool = False
 
     @property
     def fitness(self) -> float:
@@ -25,6 +26,7 @@ class Individual:
 
     @fitness.setter
     def fitness(self, fitness: float):
+        self.fitted = True
         if not isinstance(self._fitness, float):
             raise TypeError("fitness has to be a float value")
         self._fitness = fitness
@@ -32,17 +34,21 @@ class Individual:
     @property
     def genes(self) -> np.ndarray:
         """Genes of the individual."""
+        self.fitted = False
         return self._genes
 
     @genes.setter
     def genes(self, genes: np.ndarray):
+        self.fitted = False
         if self._genes.shape != genes.shape:
             raise ValueError(f"Expected shape {self._genes.shape} of genes")
         self._genes = genes
 
     def copy(self) -> "Individual":
         """Creates and returns a shallow copy of this individual."""
-        return Individual(self._genes.copy())
+        ind = Individual(self._genes.copy())
+        ind.fitness = self._fitness
+        return ind
 
     def __repr__(self) -> str:
         return f"Individual(fitness={self._fitness}, genes={self._genes})"

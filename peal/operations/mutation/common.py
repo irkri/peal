@@ -1,44 +1,121 @@
 """Module that implements common mutation operations."""
 
+from typing import Union
+
 import numpy as np
 
-from peal.population import Population
-from peal.operations.config import operation
-from peal.operations.iteration import every
+from peal.operations.mutation.base import MutationOperator
+from peal.population import Individual
 
 
-@operation(category="mutation")
-def flip_bits(
-    population: Population,
-    prob: float = 0.5,
-) -> Population:
-    iterator = every(population)
-    result = Population()
-    for ind in iterator:
-        new_ind = ind.copy()
-        for i in range(len(ind.genes)):
-            if np.random.random_sample() <= prob:
-                new_ind.genes[i] = not ind.genes[i]
-        result.populate(new_ind)
-    return result
+class BitFlip(MutationOperator):
+    """Mutation that applies the python ``not`` operator to genes in
+    a individual.
+
+    Args:
+        prob (float, optional): The probability of each gene to mutate.
+            Defaults to 0.1.
+    """
+
+    def __init__(self, prob: float = 0.1):
+        super().__init__(1, 1)
+        self._prob = prob
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("BitFlip expects a single individual")
+
+        ind = individuals.copy()
+        for i, gene in enumerate(ind.genes):
+            if np.random.random_sample() <= self._prob:
+                ind.genes[i] = not gene
+        return ind
 
 
-@operation(category="mutation")
-def uniform_int(
-    population: Population,
-    prob: float = 0.5,
-    lowest: int = -1,
-    highest: int = 1,
-) -> Population:
-    iterator = every(population)
-    result = Population()
-    for ind in iterator:
-        new_ind = ind.copy()
-        hits = np.where(np.random.random_sample(len(ind.genes)) <= prob)[0]
-        new_ind.genes[hits] = np.random.randint(
-            lowest,
-            highest+1,
-            size=len(hits)
+class UniformInt(MutationOperator):
+    """Mutation that selects a random uniformly distributed integer from
+    a given range with a certain probability for a single gene.
+
+    Args:
+        prob (float, optional): The probability of each gene to mutate.
+            Defaults to 0.1.
+        lowest (int, optional): The lowest integer the mutation can turn
+            a gene to. Defaults to -1.
+        highest (int, optional): The highest integer the mutation can
+            turn a gene to. Defaults to 1.
+    """
+
+    def __init__(
+        self,
+        prob: float = 0.1,
+        lowest: int = -1,
+        highest: int = 1,
+    ):
+        super().__init__(1, 1)
+        self._prob = prob
+        self._lowest = lowest
+        self._highest = highest
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("UniformInt expects a single individual")
+
+        ind = individuals.copy()
+        hits = np.where(
+            np.random.random_sample(len(ind.genes)) <= self._prob
+        )[0]
+        ind.genes[hits] = np.random.randint(
+            self._lowest,
+            self._highest+1,
+            size=len(hits),
         )
-        result.populate(new_ind)
-    return result
+        return ind
+
+
+class NormalDist(MutationOperator):
+    """Mutation operator that changes genes for an individual with a
+    probability by __adding__ a randomly distributed real value.
+
+    Args:
+        prob (float, optional): The probability of each gene to mutate.
+            Defaults to 0.1.
+        mu (float, optional): The mean of the normal distribution the
+            values are drawn from. Defaults to 0.
+        sigma (float, optional): The standard deviation of the normal
+            distribution the values are drawn from. Defaults to 1.
+    """
+
+    def __init__(
+        self,
+        prob: float = 0.1,
+        mu: float = 0.0,
+        sigma: float = 1.0,
+    ):
+        super().__init__(1, 1)
+        self._prob = prob
+        self._mu = mu
+        self._sigma = sigma
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("NormalDist expects a single individual")
+
+        ind = individuals.copy()
+        hits = np.where(
+            np.random.random_sample(len(ind.genes)) <= self._prob
+        )[0]
+        ind.genes[hits] += np.random.normal(
+            self._mu,
+            self._sigma,
+            size=len(hits),
+        )
+        return ind
