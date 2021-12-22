@@ -13,10 +13,10 @@ for university.
 Also, I felt like other packages in this field (such as [DEAP](https://github.com/DEAP/deap))
 seem to implement the algorithms in a non-pythonic way without using an here naturally suited
 object-oriented approach. Of course, these package tend to have a much higher variety of methods
-and __PEAL__ should (for now) not be seen as a replacement for these advanced tools.
+and __PEAL__ should (for now) not be seen as a replacement of mentioned advanced tools.
 
 If you have tips, ideas or possible changes on the structure of __PEAL__ you want me to know about,
-do not hesitate to contact me. Im still trying to figure out a lot of things about evolutionary
+do not hesitate to contact me. I'm still trying to figure out a lot of things about evolutionary
 algorithms as well as python package development.
 
 ## Installation
