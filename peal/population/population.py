@@ -1,5 +1,5 @@
-"""Module that defines a population used in a
-:class:`~peal.environment.environment.Environment`.
+"""Module that defines a population used in an evolutionary process,
+defined in :py:mod:`peal.core.process`.
 """
 
 from typing import Optional, Union
@@ -11,7 +11,7 @@ from peal.population.individual import Individual
 
 class Population:
     """A iterable container for
-    :class:`~peal.individual.base.Individual` objects.
+    :class:`~peal.population.individual.Individual` objects.
 
     Args:
         individuals (Individual): One or more individuals to add.

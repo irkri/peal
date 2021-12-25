@@ -1,24 +1,29 @@
-"""Module that defines various evolutionary processes."""
+"""Module that defines various evolutionary processes.
+
+An evolutionary process is a class in PEAL that describes a certain kind
+of algorithm or approach to an optimization problem that is related to
+the theory of evolutionary algorithms.
+Each of these processes can be customized based on the information given
+in the corresponding class.
+"""
 
 import re
 from typing import Optional
 
 import numpy as np
 
-from peal.core.integration import (
+from peal.evaluation import Callback, Fitness
+
+from peal.operations.mutation import MutationOperator
+from peal.operations.reproduction import ReproductionOperator, MultiMix
+from peal.operations.selection import SelectionOperator, Best
+
+from peal.population import (
+    Breeder,
+    Population,
     IntegrationTechnique,
     OffspringFirstIntegration,
 )
-
-from peal.evaluation import Callback, Fitness
-
-from peal.operations import (
-    MutationOperator,
-    ReproductionOperator, MultiMix,
-    SelectionOperator, Best,
-)
-
-from peal.population import Breeder, Population
 
 
 class SynchronousProcess:
@@ -39,7 +44,7 @@ class SynchronousProcess:
             that can be specified but doesn't have to. Defaults to None.
         integration (IntegrationTechnique): The integration technique
             that integrates offspring created by the reproduction
-            operator in the population.
+            operator into the population.
             Defaults to :class:`OffspringFirstIntegration`.
     """
 
@@ -123,7 +128,7 @@ class SynchronousProcess:
 
 
 class StrategyProcess:
-    r"""A process that follows a certain evolutionary strategy given by
+    """A process that follows a certain evolutionary strategy given by
     the argument ``signature`` for a number of generations.
 
     Args:
@@ -138,18 +143,18 @@ class StrategyProcess:
             where ``{,|+}`` denotes the character ``,`` or ``+``. Other
             symbols are used to describe the following.
 
-            - ``a``: Number of parent populations.
-            - ``b``: Number of populations to use for creating one new
-                population.
-            - ``c``: Number of offspring populations.
-            - ``d``: Number of parent individuals.
-            - ``e``: Number of individuals to use from one parent
-                population to reproduce offspring.
-            - ``f``: Size of one offspring population.
-            - ``g``: Number of iterations each population evolves before
-                mixin them.
+            * ``a``: Number of parent populations.
+            * ``b``: Number of populations to use for creating one new
+              population.
+            * ``c``: Number of offspring populations.
+            * ``d``: Number of parent individuals.
+            * ``e``: Number of individuals to use from one parent
+              population to reproduce offspring.
+            * ``f``: Size of one offspring population.
+            * ``g``: Number of iterations each population evolves before
+              mixin them.
 
-            The values ``a`` ,``b`` and ``c`` are optional, ``a`` and
+            The values ``a``, ``b`` and ``c`` are optional, ``a`` and
             ``c`` always have to be supplied if one of them is
             specified. Also ``b``, ``e`` and ``g`` are optional.
             Specifying ``d+f`` refers to the strategy of using also
@@ -222,7 +227,7 @@ class StrategyProcess:
                 Defaults to None.
 
         Returns:
-            Population: A list of populations created in the final
+            list[Population]: A list of populations created in the final
                 generation.
         """
         if callbacks is None:

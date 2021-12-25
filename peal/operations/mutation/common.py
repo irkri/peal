@@ -1,5 +1,3 @@
-"""Module that implements common mutation operations."""
-
 from typing import Union
 
 import numpy as np

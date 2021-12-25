@@ -1,4 +1,4 @@
-"""Module that implements the base callback class."""
+"""Callbacks can be used to supervise an evolutionary process."""
 
 import numpy as np
 
@@ -59,9 +59,6 @@ class DiversityStatistics(Callback):
     Attributes:
         gene_diversity (np.ndarray): A numpy array containing the gene
             diversity for each generation at each locus.
-        diversity (np.ndarray): The mean value of ``gene_diversity`` in
-            each generation. Afterwards it will be scaled by
-            ``allele.size/(allele.size-1)``.
     """
 
     def __init__(self, allele: np.ndarray):

@@ -1,5 +1,3 @@
-"""Module that implement the base class for an evolutionary operator."""
-
 from abc import ABC, abstractmethod
 from typing import Union
 

@@ -1,5 +1,3 @@
-"""Module that defines certain iteration methods for populations."""
-
 from abc import abstractmethod
 from typing import Iterator, Optional, Union
 
@@ -9,7 +7,7 @@ from peal.population import Individual, Population
 
 
 class IterationType:
-    """Abstract class for a instruction how to iterate over a
+    """Abstract class for an instruction how to iterate over a
     population.
     """
 

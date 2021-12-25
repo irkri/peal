@@ -1,5 +1,3 @@
-"""Module that implements common reproduction operations."""
-
 from typing import Union
 
 import numpy as np
