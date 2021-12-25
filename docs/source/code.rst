@@ -5,7 +5,7 @@ Getting Started
 ---------------
 Before starting to implement your own PEAL-powered evolutionary algorithm,
 choose a type of process you want to use, listed in the module
-:py:mod:`peal.process`.
+:py:mod:`peal.core.process`.
 
 These classes allow the configuration of evolutionary processes that are used
 to solve optimization problems in different ways.
