@@ -44,6 +44,8 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
+# change order of any python members in documentation when using autodoc
+autodoc_member_order = 'bysource'
 
 # -- Options for HTML output -------------------------------------------------
 

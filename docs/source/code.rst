@@ -49,3 +49,4 @@ Customizing a Process: Evolutionary Operators
 
    packages/operations/operator
    packages/operations/*
+   packages/integration
