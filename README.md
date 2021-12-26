@@ -26,6 +26,14 @@ __PEAL__ can be installed on your local machine by using the file [setup.py](set
   $ python setup.py install
 ```
 
+## Documentation
+
+The documentation of __PEAL__ can be created by calling `make html` in the [docs](docs) folder. This will need a few dependencies to work. Please install the following packages using `pip` or `conda` before executing the `make` command.
+- sphinx
+- sphinx_rtd_theme
+
+This should create a local directory `docs/build`. Open the file `docs/build/index.html` in a browser to access the documentation.
+
 ## Examples
 
 Some example code on how to use __PEAL__ can be found in the [examples](examples) folder.

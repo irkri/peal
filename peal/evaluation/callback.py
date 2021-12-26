@@ -1,13 +1,14 @@
-"""Module that implements the base callback class."""
-
 import numpy as np
 
 from peal.population import Population
 
 
 class Callback:
-    """Base class for all callbacks that can be used in an evolutionary
-    process.
+    """Base class for all callbacks. A callback in peal is a tool that
+    helps the user to supervise an evolutionary process. This way, not
+    only the result of such a process can be viewed, but also other
+    information that would be normally hidden and overwritten (e.g. at
+    the end of generations).
     """
 
     def on_start(self, population: Population):
@@ -59,9 +60,6 @@ class DiversityStatistics(Callback):
     Attributes:
         gene_diversity (np.ndarray): A numpy array containing the gene
             diversity for each generation at each locus.
-        diversity (np.ndarray): The mean value of ``gene_diversity`` in
-            each generation. Afterwards it will be scaled by
-            ``allele.size/(allele.size-1)``.
     """
 
     def __init__(self, allele: np.ndarray):

@@ -1,8 +1,3 @@
-"""Module that provides the class
-:class:`~peal.evaluation.fitness.Fitness` which is responsible for
-calculating the fitness of single individuals in an environment.
-"""
-
 from typing import Callable, Union
 
 from peal.population import Individual, Population
@@ -15,8 +10,8 @@ class Fitness:
     Args:
         method (callable): The method to be called for evaluating a
             single individual. This method should expect a value of
-            type :class:`~peal.individual.base.Individual` and
-            return a ``float``.
+            type :class:`~peal.population.individual.Individual` and
+            return a float value.
     """
 
     def __init__(self, method: Callable[[Individual], float]):
@@ -30,9 +25,6 @@ class Fitness:
         Args:
             population (Population | Individual): The Population or a
                 single individual to evaluate.
-
-        Returns:
-            list[float]: A list of fitness values for each individual.
         """
         if isinstance(population, Population):
             for ind in population:

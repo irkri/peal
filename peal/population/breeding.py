@@ -1,5 +1,3 @@
-"""Module that defines the base breeder class."""
-
 from typing import Callable
 
 import numpy as np
@@ -10,18 +8,19 @@ from peal.population.individual import Individual
 
 class Breeder:
     """Class that manages the generation of new
-    :class:`~peal.individual.base.Individual` instances.
+    :class:`~peal.population.individual.Individual` instances.
 
     Args:
         method (callable): A method that returns an
-            :class:`~peal.individual.base.Individual`.
+            :class:`~peal.population.individual.Individual`.
     """
 
     def __init__(self, method: Callable[[], Individual]):
         self._method = method
 
     def breed(self, size: int = 1) -> Population:
-        """Returns a population of given size using the given method.
+        """Returns a population of given size using the specified
+        method.
 
         Args:
             size (int, optional): Number of individuals to breed.
@@ -40,7 +39,7 @@ def breeder(method: Callable[[], Individual]) -> Breeder:
     """Decorator for a breeding method.
 
     Declaring your own breeder is possible with the class
-    :class:`~peal.environment.breeder.Breeder` or using this decorator
+    :class:`~peal.population.breeding.Breeder` or using this decorator
     on your breeding method.
     The method you want to decorate will need to have the same arguments
     and return types as described in the mentioned class.

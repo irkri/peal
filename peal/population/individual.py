@@ -1,17 +1,11 @@
-"""This module defines a basic individual used in a evolutionary
-algorithm.
-"""
-
 import numpy as np
 
 
 class Individual:
-    """Class for individuals used in a evolutionary algorithm.
-
-    For defining your own individual with a gene type different of
-    ``numpy.ndarray``, define::
-
-        MyIndividual: peal.BaseIndividual[mytype]
+    """Class for individuals used in an evolutionary process. The genes
+    of one individual represent a solution to an optimisation problem.
+    The value or 'fitness' of the individual is a measure of the
+    goodness-of-fit of this solution.
     """
 
     def __init__(self, genes: np.ndarray):
@@ -33,7 +27,9 @@ class Individual:
 
     @property
     def genes(self) -> np.ndarray:
-        """Genes of the individual."""
+        """Genes of the individual as a numpy array that represents the
+        solution to an optimization problem.
+        """
         self.fitted = False
         return self._genes
 

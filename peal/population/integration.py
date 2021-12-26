@@ -1,12 +1,8 @@
-"""Module that implements some integration techniques used in
-evolutionary processes.
-"""
-
 from abc import ABC, abstractmethod
 
 import numpy as np
 
-from peal.population import Population
+from peal.population.population import Population
 
 
 class IntegrationTechnique(ABC):
@@ -24,8 +20,9 @@ class IntegrationTechnique(ABC):
 
 
 class OffspringFirstIntegration(IntegrationTechnique):
-    """This integration technique prefers the offspring to put in the
-    new population."""
+    """This integration technique prefers to put offspring into the new
+    population.
+    """
 
     def merge(
         self,
@@ -60,7 +57,7 @@ class CrowdedIntegration(IntegrationTechnique):
     an evolutionary process.
 
     Args:
-        crowding_factor (int, optinoal): The number of parents to
+        crowding_factor (int, optional): The number of parents to
             compare one child to. Known as the crowding factor.
             Defaults to 10.
     """

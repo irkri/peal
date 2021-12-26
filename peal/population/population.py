@@ -1,7 +1,3 @@
-"""Module that defines a population used in a
-:class:`~peal.environment.environment.Environment`.
-"""
-
 from typing import Optional, Union
 
 import numpy as np
@@ -10,8 +6,8 @@ from peal.population.individual import Individual
 
 
 class Population:
-    """A iterable container for
-    :class:`~peal.individual.base.Individual` objects.
+    """An iterable container for
+    :class:`~peal.population.individual.Individual` objects.
 
     Args:
         individuals (Individual): One or more individuals to add.

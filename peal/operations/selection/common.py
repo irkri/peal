@@ -1,5 +1,3 @@
-"""Module that implements common selection operations."""
-
 from typing import Union
 from peal.operations.iteration import NRandomBatchesIteration
 
