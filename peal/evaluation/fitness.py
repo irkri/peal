@@ -1,8 +1,3 @@
-"""Module that provides the class
-:class:`~peal.evaluation.fitness.Fitness` which is responsible for
-calculating the fitness of single individuals in an environment.
-"""
-
 from typing import Callable, Union
 
 from peal.population import Individual, Population

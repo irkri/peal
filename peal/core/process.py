@@ -1,8 +1,6 @@
-"""Module that defines various evolutionary processes.
-
-An evolutionary process is a class in PEAL that describes a certain kind
-of algorithm or approach to an optimization problem that is related to
-the theory of evolutionary algorithms.
+"""An evolutionary process is a class in PEAL that describes a certain
+kind of algorithm or approach to an optimization problem that is related
+to the theory of evolutionary algorithms.
 Each of these processes can be customized based on the information given
 in the corresponding class.
 """

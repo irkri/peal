@@ -1,8 +1,3 @@
-"""This module defines a basic individual used in an evolutionary
-algorithm. An individual is a representation of a solution to an
-optimisation problem.
-"""
-
 import numpy as np
 
 

@@ -1,5 +1,5 @@
-Finding the best suited process
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Finding the best suited evolutionary process
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: peal.core.process
    :members:

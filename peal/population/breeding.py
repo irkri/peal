@@ -1,5 +1,3 @@
-"""Module that defines the base breeder class."""
-
 from typing import Callable
 
 import numpy as np

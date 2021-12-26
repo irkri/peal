@@ -1,7 +1,3 @@
-"""Module that defines a population used in an evolutionary process,
-defined in :py:mod:`peal.core.process`.
-"""
-
 from typing import Optional, Union
 
 import numpy as np
@@ -10,7 +6,7 @@ from peal.population.individual import Individual
 
 
 class Population:
-    """A iterable container for
+    """An iterable container for
     :class:`~peal.population.individual.Individual` objects.
 
     Args:

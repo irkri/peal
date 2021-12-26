@@ -5,7 +5,6 @@ PEAL's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   introduction
    code
 
 Indices and tables

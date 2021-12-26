@@ -1,13 +1,14 @@
-"""Callbacks can be used to supervise an evolutionary process."""
-
 import numpy as np
 
 from peal.population import Population
 
 
 class Callback:
-    """Base class for all callbacks that can be used in an evolutionary
-    process.
+    """Base class for all callbacks. A callback in peal is a tool that
+    helps the user to supervise an evolutionary process. This way, not
+    only the result of such a process can be viewed, but also other
+    information that would be normally hidden and overwritten (e.g. at
+    the end of generations).
     """
 
     def on_start(self, population: Population):
