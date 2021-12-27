@@ -6,6 +6,8 @@ import peal
 A = np.array([4, 74, 43, 23, 0])
 B = np.array([8, 34, 65, 21, 100])
 
+pool = peal.population.IntegerPool(shape=A.size, lower=0, upper=101)
+
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
@@ -14,7 +16,7 @@ def evaluate(individual: peal.Individual) -> float:
 
 
 process = peal.StrategyProcess(
-    breeder=peal.IntegerBreeder(size=A.size, lower=1, upper=100),
+    breeder=peal.Breeder(gene_pool=pool),
     fitness=evaluate,
     mutation=peal.operations.mutation.UniformInt(
         prob=0.1,

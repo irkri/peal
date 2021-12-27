@@ -6,6 +6,10 @@ class Individual:
     of one individual represent a solution to an optimisation problem.
     The value or 'fitness' of the individual is a measure of the
     goodness-of-fit of this solution.
+
+    Args:
+        genes (np.ndarray): The genome of the individual as a numpy
+            array containing all genes.
     """
 
     def __init__(self, genes: np.ndarray):
@@ -36,7 +40,7 @@ class Individual:
     @genes.setter
     def genes(self, genes: np.ndarray):
         self.fitted = False
-        if self._genes.shape != genes.shape:
+        if self._genes.dtype != object and self._genes.shape != genes.shape:
             raise ValueError(f"Expected shape {self._genes.shape} of genes")
         self._genes = genes
 

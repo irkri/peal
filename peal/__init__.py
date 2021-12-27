@@ -1,17 +1,17 @@
-import peal.core
+from peal import core
 from peal.core import SynchronousProcess, StrategyProcess
 
-import peal.evaluation
+from peal import evaluation
 from peal.evaluation import (
     fitness,
+    GPFitness,
 )
 
-import peal.operations
+from peal import operations
 
-import peal.population
+from peal import population
 from peal.population import (
-    breeder,
-    IntegerBreeder,
+    Breeder,
     Individual,
     Population,
 )

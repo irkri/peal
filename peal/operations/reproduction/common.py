@@ -2,8 +2,25 @@ from typing import Union
 
 import numpy as np
 
+from peal.operations.iteration import SingleIteration
 from peal.operations.reproduction.base import ReproductionOperator
 from peal.population import Individual
+
+
+class Copy(ReproductionOperator):
+    """Simple reproduction operator that copies the individual."""
+
+    def __init__(self):
+        super().__init__(1, 1, 1.0)
+        self._iteration_type = SingleIteration()
+
+    def _process(
+        self,
+        individuals: Union[Individual, tuple[Individual, ...]],
+    ) -> Union[Individual, tuple[Individual, ...]]:
+        if not isinstance(individuals, Individual):
+            raise TypeError("Copy Operator expects a single individual")
+        return individuals.copy()
 
 
 class Crossover(ReproductionOperator):

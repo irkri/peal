@@ -47,3 +47,29 @@ def fitness(method: Callable[[Individual], float]) -> Fitness:
     and return types as described in the mentioned class.
     """
     return Fitness(method=method)
+
+
+class GPFitness(Fitness):
+    """Fitness to use in a genetic programming process.
+    The fitness will be the return value of the genome tree of
+    operations an individual consists of.
+    """
+
+    @staticmethod
+    def _eval(individual: Individual) -> float:
+        index = len(individual.genes) - 1
+        arguments = []
+        while index >= 0:
+            while individual.genes[index].terminal:
+                arguments.insert(0, individual.genes[index]())
+                index -= 1
+            argcount = len(individual.genes[index].argtypes)
+            arguments.insert(0,
+                individual.genes[index](*arguments[-argcount:])
+            )
+            arguments = arguments[:len(arguments)-argcount]
+            index -= 1
+        return float(arguments[0])
+
+    def __init__(self):
+        super().__init__(GPFitness._eval)
