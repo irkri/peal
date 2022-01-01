@@ -26,7 +26,7 @@ class GPPoint(MutationOperator):
         individuals: Union[Individual, tuple[Individual, ...]],
     ) -> Union[Individual, tuple[Individual, ...]]:
         if not isinstance(individuals, Individual):
-            raise TypeError("CPPoint expects a single individual")
+            raise TypeError("GPPoint expects a single individual")
         if np.random.random_sample() >= self._prob:
             return individuals.copy()
 
