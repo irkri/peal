@@ -16,6 +16,7 @@ class Individual:
         self._genes = genes
         self._fitness: float = 0.0
         self.fitted: bool = False
+        self._hidden_genes: np.ndarray = np.empty((0,))
 
     @property
     def fitness(self) -> float:
@@ -44,10 +45,23 @@ class Individual:
             raise ValueError(f"Expected shape {self._genes.shape} of genes")
         self._genes = genes
 
+    @property
+    def hidden_genes(self) -> np.ndarray:
+        """A number of genes that may be used internally by some
+        methods in peal. Typically, one shouldn't access or try to
+        interpret these numbers.
+        """
+        return self._hidden_genes
+
+    @hidden_genes.setter
+    def hidden_genes(self, hidden_genes: np.ndarray):
+        self._hidden_genes = hidden_genes
+
     def copy(self) -> "Individual":
         """Creates and returns a shallow copy of this individual."""
         ind = Individual(self._genes.copy())
         ind.fitness = self._fitness
+        ind._hidden_genes = self._hidden_genes
         return ind
 
     def __repr__(self) -> str:

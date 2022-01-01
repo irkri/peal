@@ -6,6 +6,8 @@ import peal
 A = np.array([4, 74, 43, 23, 0])
 B = np.array([8, 34, 65, 21, 100])
 
+pool = peal.population.IntegerPool(shape=A.size, lower=0, upper=101)
+
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
@@ -14,8 +16,10 @@ def evaluate(individual: peal.Individual) -> float:
 
 
 process = peal.SynchronousProcess(
-    breeder=peal.IntegerBreeder(size=A.size, lower=1, upper=100),
+    breeder=peal.Breeder(pool),
     fitness=evaluate,
+    init_size=100,
+    generations=100,
     selection=peal.operations.selection.Tournament(size=3),
     mutation=peal.operations.mutation.UniformInt(
         prob=0.01,
@@ -27,10 +31,11 @@ process = peal.SynchronousProcess(
         probability=0.7
     ),
 )
-
 crowded_process = peal.SynchronousProcess(
-    breeder=peal.IntegerBreeder(A.size, lower=1, upper=100),
+    breeder=peal.Breeder(pool),
     fitness=evaluate,
+    init_size=100,
+    generations=100,
     selection=peal.operations.selection.Tournament(size=3),
     mutation=peal.operations.mutation.UniformInt(
         prob=0.01,
@@ -41,27 +46,18 @@ crowded_process = peal.SynchronousProcess(
         npoints=1,
         probability=0.7
     ),
-    integration=peal.core.integration.CrowdedIntegration(10),
+    integration=peal.population.CrowdedIntegration(10),
 )
 
 tracker = peal.evaluation.BestWorstTracker()
+crowded_tracker = peal.evaluation.BestWorstTracker()
 statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
 crowded_statistics = peal.evaluation.DiversityStatistics(
     allele=np.arange(1, 101)
 )
-crowded_tracker = peal.evaluation.BestWorstTracker()
 
-process.start(
-    population_size=100,
-    ngen=100,
-    callbacks=[tracker, statistics]
-)
-
-crowded_process.start(
-    population_size=100,
-    ngen=100,
-    callbacks=[crowded_tracker, crowded_statistics]
-)
+process.start(callbacks=[tracker, statistics])
+crowded_process.start(callbacks=[crowded_tracker, crowded_statistics])
 
 print(tracker.best)
 
