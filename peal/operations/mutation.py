@@ -1,9 +1,24 @@
-from typing import Union
-
 import numpy as np
 
-from peal.operations.mutation.base import MutationOperator
-from peal.population import Individual
+from peal.genetics import GenePool
+from peal.individual import Individual
+from peal.operations.iteration import SingleIteration
+from peal.operations.operator import Operator
+
+
+class MutationOperator(Operator):
+    """Operator for the mutation of individuals in a popoulation."""
+
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+    ):
+        super().__init__(
+            in_size=in_size,
+            out_size=out_size,
+            iter_type=SingleIteration(),
+        )
 
 
 class BitFlip(MutationOperator):
@@ -16,21 +31,18 @@ class BitFlip(MutationOperator):
     """
 
     def __init__(self, prob: float = 0.1):
-        super().__init__(1, 1)
+        super().__init__(in_size=1, out_size=1)
         self._prob = prob
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, Individual):
-            raise TypeError("BitFlip expects a single individual")
-
-        ind = individuals.copy()
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        ind = objects[0].copy()
         for i, gene in enumerate(ind.genes):
             if np.random.random_sample() <= self._prob:
                 ind.genes[i] = not gene
-        return ind
+        return (ind, )
 
 
 class UniformInt(MutationOperator):
@@ -52,19 +64,16 @@ class UniformInt(MutationOperator):
         lowest: int = -1,
         highest: int = 1,
     ):
-        super().__init__(1, 1)
+        super().__init__(in_size=1, out_size=1)
         self._prob = prob
         self._lowest = lowest
         self._highest = highest
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, Individual):
-            raise TypeError("UniformInt expects a single individual")
-
-        ind = individuals.copy()
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        ind = objects[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
@@ -73,7 +82,7 @@ class UniformInt(MutationOperator):
             self._highest+1,
             size=len(hits),
         )
-        return ind
+        return (ind, )
 
 
 class NormalDist(MutationOperator):
@@ -102,12 +111,9 @@ class NormalDist(MutationOperator):
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, Individual):
-            raise TypeError("NormalDist expects a single individual")
-
-        ind = individuals.copy()
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        ind = objects[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
@@ -116,4 +122,42 @@ class NormalDist(MutationOperator):
             self._sigma,
             size=len(hits),
         )
-        return ind
+        return (ind, )
+
+
+class GPPoint(MutationOperator):
+    """Point mutation used in a genetic programming algorithm.
+    This mutation replaces a node
+
+    Args:
+        gene_pool (GenePool): The gene pool used to generate a
+        prob (float, optional): The probability to mutate one node in
+            the tree representation of an individual. Defaults to 0.1.
+    """
+
+    def __init__(self, gene_pool: GenePool, prob: float = 0.1):
+        super().__init__(in_size=1, out_size=1)
+        self._gene_pool = gene_pool
+        self._prob = prob
+
+    def _process(
+        self,
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        if np.random.random_sample() >= self._prob:
+            return (objects[0].copy(), )
+
+        ind = objects[0].copy()
+        index = np.random.randint(0, len(ind.genes))
+        # search for subtree slice starting at index in the tree
+        right = index + 1
+        total = len(ind.genes[index].argtypes)
+        while total > 0:
+            total += len(ind.genes[right].argtypes) - 1
+            right += 1
+        ind.genes = np.concatenate((
+            ind.genes[:index],
+            self._gene_pool.random_genome(rtype=ind.genes[index].rtype),
+            ind.genes[right:],
+        ))
+        return (ind, )

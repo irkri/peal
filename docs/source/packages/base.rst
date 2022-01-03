@@ -1,7 +1,7 @@
 Individuals
 ^^^^^^^^^^^
 
-.. automodule:: peal.population.individual
+.. automodule:: peal.individual
    :members:
    :undoc-members:
    :show-inheritance:
@@ -9,7 +9,11 @@ Individuals
 Breeding new Individuals
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.population.breeding
+.. automodule:: peal.genetics
+   :members:
+   :undoc-members:
+   :show-inheritance:
+.. automodule:: peal.breeding
    :members:
    :undoc-members:
    :show-inheritance:
@@ -17,7 +21,7 @@ Breeding new Individuals
 Forming a Population
 ^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.population.population
+.. automodule:: peal.population
    :members:
    :undoc-members:
    :show-inheritance:

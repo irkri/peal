@@ -1,26 +1,49 @@
-from typing import Union
+from typing import Optional
 
 import numpy as np
 
-from peal.operations.iteration import SingleIteration
-from peal.operations.reproduction.base import ReproductionOperator
+from peal.operations.iteration import (
+    IterationType,
+    SingleIteration,
+    RandomStraightIteration
+)
+from peal.operations.operator import Operator
 from peal.population import Individual
 
 
+class ReproductionOperator(Operator):
+    """Operator for the reproduction of individuals in a popoulation."""
+
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        probability: float = 1.0,
+        iter_type: Optional[IterationType] = None,
+    ):
+        if iter_type is None:
+            iter_type = RandomStraightIteration(
+                batch_size=in_size,
+                probability=probability
+            )
+        super().__init__(
+            in_size=in_size,
+            out_size=out_size,
+            iter_type=iter_type,
+        )
+
+
 class Copy(ReproductionOperator):
-    """Simple reproduction operator that copies the individual."""
+    """Simple reproduction operator that copies a single individual."""
 
     def __init__(self):
-        super().__init__(1, 1, 1.0)
-        self._iteration_type = SingleIteration()
+        super().__init__(in_size=1, out_size=1, iter_type=SingleIteration())
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, Individual):
-            raise TypeError("Copy Operator expects a single individual")
-        return individuals.copy()
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        return (objects[0].copy(), )
 
 
 class Crossover(ReproductionOperator):
@@ -34,34 +57,32 @@ class Crossover(ReproductionOperator):
     """
 
     def __init__(self, npoints: int = 2, probability: float = 0.5):
-        super().__init__(2, 2, probability)
+        super().__init__(in_size=2, out_size=2, probability=probability)
         self._npoints = npoints
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, tuple):
-            raise TypeError("Crossover expects a tuple of individuals")
-
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        ind1, ind2 = objects
         points = np.insert(
             np.sort(
                 np.random.randint(
                     1,
-                    len(individuals[0].genes),
+                    len(ind1.genes),
                     size=self._npoints
                 )
             ),
             [0, -1],
-            [0, len(individuals[0].genes)]
+            [0, len(ind1.genes)]
         )
         start = self._npoints % 2
-        off1, off2 = individuals[0].copy(), individuals[1].copy()
+        off1, off2 = ind1.copy(), ind2.copy()
         for i in range(start, self._npoints+(1-start), 2):
-            off1.genes[points[i]:points[i+1]] = individuals[1].genes[
+            off1.genes[points[i]:points[i+1]] = ind2.genes[
                 points[i]:points[i+1]
             ]
-            off2.genes[points[i]:points[i+1]] = individuals[0].genes[
+            off2.genes[points[i]:points[i+1]] = ind1.genes[
                 points[i]:points[i+1]
             ]
         return off1, off2
@@ -83,34 +104,32 @@ class MultiMix(ReproductionOperator):
     """
 
     def __init__(self, in_size: int = 2, probability: float = 0.5):
-        super().__init__(in_size, 1, probability)
+        super().__init__(in_size=in_size, out_size=1, probability=probability)
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if isinstance(individuals, Individual):
-            if self._in_size > 1:
-                raise TypeError("Crossover expects a tuple of individuals")
-            return individuals.copy()
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        if self._in_size == 1:
+            return (objects[0].copy(), )
 
         parts = [
-            individuals[0].genes.shape[0] // self._in_size
+            objects[0].genes.shape[0] // self._in_size
             for _ in range(self._in_size)
         ]
-        missing = individuals[0].genes.shape[0] % self._in_size
+        missing = objects[0].genes.shape[0] % self._in_size
         for i in range(missing):
             parts[i] += 1
         parts.insert(0, 0)
 
-        genes = np.zeros_like(individuals[0].genes)
-        shuffled_indices = np.arange(individuals[0].genes.shape[0])
+        genes = np.zeros_like(objects[0].genes)
+        shuffled_indices = np.arange(objects[0].genes.shape[0])
         np.random.shuffle(shuffled_indices)
         for i in range(len(parts)-1):
             genes[shuffled_indices[parts[i]:parts[i]+parts[i+1]]] = (
-                individuals[i].genes[
+                objects[i].genes[
                     shuffled_indices[parts[i]:parts[i]+parts[i+1]]
                 ]
             )
         new_ind = Individual(genes)
-        return new_ind
+        return (new_ind, )

@@ -1,7 +1,7 @@
 Fitness - Evaluating single individuals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.evaluation.fitness
+.. automodule:: peal.fitness
    :members:
    :undoc-members:
    :show-inheritance:
@@ -9,7 +9,7 @@ Fitness - Evaluating single individuals
 Callbacks - Monitoring evolutionary processes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.evaluation.callback
+.. automodule:: peal.core.callback
    :members:
    :undoc-members:
    :show-inheritance:

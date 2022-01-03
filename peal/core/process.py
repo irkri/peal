@@ -5,19 +5,14 @@ from typing import ClassVar, Optional
 
 import numpy as np
 
-from peal.evaluation import Callback, Fitness
-
-from peal.operations.mutation import MutationOperator
-from peal.operations.mutation.common import NormalDist
+from peal.breeding import Breeder
+from peal.core.callback import Callback
+from peal.fitness import Fitness
+from peal.operations.mutation import MutationOperator, NormalDist
 from peal.operations.reproduction import ReproductionOperator, MultiMix
 from peal.operations.selection import SelectionOperator, Best
-
-from peal.population import (
-    Breeder,
-    Population,
-    IntegrationTechnique,
-    OffspringFirstIntegration,
-)
+from peal.operations.integration import IntegrationOperator, OffspringFirst
+from peal.population import Population
 
 
 class _AbstractProcess(ABC):
@@ -90,8 +85,8 @@ class SynchronousProcess(Process):
     selection: SelectionOperator
     reproduction: ReproductionOperator
     mutation: Optional[MutationOperator] = None
-    integration: IntegrationTechnique = field(
-        default_factory=OffspringFirstIntegration
+    integration: IntegrationOperator = field(
+        default_factory=OffspringFirst
     )
 
     def start(self, callbacks: Optional[list[Callback]] = None) -> None:
@@ -112,15 +107,14 @@ class SynchronousProcess(Process):
             selected = self.selection.process(population)
 
             offspring.populate(self.reproduction.process(selected))
-            population = self.integration.merge(
-                offspring,
-                selected,  # type: ignore
-            )
+            population = self.integration.process(
+                (offspring, selected)  # type: ignore
+            )[0]
 
             if self.mutation is not None:
                 population = self.mutation.process(
-                    population,  # type: ignore
-                )
+                    population,
+                )  # type: ignore
 
             self.fitness.evaluate(population)
             for callback in callbacks:
@@ -288,7 +282,7 @@ class StrategyProcess(Process):
                         )
                         offspring[j] = NormalDist(
                             1.0, 0, individual.hidden_genes[0]**2
-                        ).process(individual)
+                        ).process((individual, ))[0]
 
                     # select self._ind_mu individuals
                     self.fitness.evaluate(offspring)
@@ -296,7 +290,7 @@ class StrategyProcess(Process):
                         offspring.populate(population)
                     offspring_populations[i] = self._selection(
                         offspring
-                    )
+                    )  # type: ignore
 
                     for callback in callbacks:
                         callback.on_generation_end(offspring_populations[i])

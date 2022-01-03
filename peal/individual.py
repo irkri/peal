@@ -61,7 +61,7 @@ class Individual:
         """Creates and returns a shallow copy of this individual."""
         ind = Individual(self._genes.copy())
         ind.fitness = self._fitness
-        ind._hidden_genes = self._hidden_genes
+        ind.hidden_genes = self._hidden_genes
         return ind
 
     def __repr__(self) -> str:

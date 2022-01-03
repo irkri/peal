@@ -2,7 +2,7 @@ from typing import Optional, Union
 
 import numpy as np
 
-from peal.population.individual import Individual
+from peal.individual import Individual
 
 
 class Population:

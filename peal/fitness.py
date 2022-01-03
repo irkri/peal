@@ -58,13 +58,14 @@ class GPFitness(Fitness):
     @staticmethod
     def _eval(individual: Individual) -> float:
         index = len(individual.genes) - 1
-        arguments = []
+        arguments: list[float] = []
         while index >= 0:
             while individual.genes[index].terminal:
                 arguments.insert(0, individual.genes[index]())
                 index -= 1
             argcount = len(individual.genes[index].argtypes)
-            arguments.insert(0,
+            arguments.insert(
+                0,
                 individual.genes[index](*arguments[-argcount:])
             )
             arguments = arguments[:len(arguments)-argcount]

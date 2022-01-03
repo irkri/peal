@@ -6,7 +6,7 @@ import peal
 A = np.array([4, 74, 43, 23, 0])
 B = np.array([8, 34, 65, 21, 100])
 
-pool = peal.population.NumberPool(shape=A.size, lower=0, upper=101)
+pool = peal.genetics.NumberPool(shape=A.size, lower=0, upper=101)
 
 
 @peal.fitness
@@ -23,8 +23,8 @@ process = peal.StrategyProcess(
     signature="3/1,5(2/2,14)^10",
 )
 
-tracker = peal.evaluation.BestWorstTracker()
-statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
+tracker = peal.core.BestWorstTracker()
+statistics = peal.core.DiversityStatistics(allele=np.arange(1, 101))
 process.start(callbacks=[tracker, statistics])
 
 print(tracker.best)

@@ -1,6 +1,6 @@
-from peal.population.genepool import GenePool
-from peal.population.individual import Individual
-from peal.population.population import Population
+from peal.genetics import GenePool
+from peal.individual import Individual
+from peal.population import Population
 
 
 class Breeder:

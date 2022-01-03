@@ -5,7 +5,7 @@ import peal
 
 np.random.seed(62)
 
-pool = peal.population.GPPool(2, 4)
+pool = peal.genetics.GPPool(2, 4)
 
 
 @pool.allele
@@ -43,7 +43,7 @@ process = peal.SynchronousProcess(
     mutation=peal.operations.mutation.GPPoint(pool.configure(1, 2)),
 )
 
-tracker = peal.evaluation.BestWorstTracker()
+tracker = peal.core.BestWorstTracker()
 
 process.start(callbacks=[tracker])
 

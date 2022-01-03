@@ -1,72 +1,69 @@
 from abc import ABC, abstractmethod
-from typing import Union
+from typing import Optional, Union
 
-from peal.operations.iteration import IterationType
-from peal.population import Individual, Population
+from peal.individual import Individual
+from peal.operations.iteration import IterationType, SingleIteration
+from peal.population import Population
 
 
 class Operator(ABC):
     """Base class for evolutionary operators in peal.
 
     Args:
-        in_individuals (int): The number of individuals to input in the
+        in_size (int): The number of individuals to input in the
             operator.
-        out_individuals (int): The number of individuals returned by the
-            operator.
+        out_size (int, optional): The number of individuals returned by
+            the operator. Defaults to ``in_size``.
+        iter_type (IterationType, optional): The type of iteration
+            mechanism to use to iterate over a given population.
+            Defaults to :class:`SingleIteration`.
     """
 
     def __init__(
         self,
-        in_individuals: int,
-        out_individuals: int,
-        iteration_type: IterationType,
+        in_size: int,
+        out_size: int,
+        iter_type: Optional[IterationType] = None,
     ):
-        self._in_size = in_individuals
-        self._out_size = out_individuals
-        self._iteration_type = iteration_type
+        self._in_size = in_size
+        self._out_size = out_size
+        self._iter_type = SingleIteration() if iter_type is None else iter_type
 
     def process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...], Population],
-    ) -> Union[Individual, tuple[Individual, ...], Population]:
-        """Processes the given individuals with the operator.
-        The number of individuals to input and output is specified in
-        the initialization of the operator.
+        objects: Union[tuple[Individual, ...], Population],
+    ) -> Union[tuple[Individual, ...], Population]:
+        """Processes the given individuals or population with the
+        operator. The number of objects to input and the size of the
+        output is specified in the initialization of the operator.
 
         Args:
-            individuals (Individual | tuple | Population): One or a
-                tuple of more individuals to process. However, only one
-                operation, that depends on one or more individuals, is
-                performed. If a population is given, then the method
+            objects (tuple[Individual, ...] | Population): A tuple of
+                one or multiple individuals to process. Only one
+                operation is performed. If a population is given then
                 :meth:`process_all` will be called instead.
 
         Returns:
             Processed individual(s) or population.
         """
-        if isinstance(individuals, Population):
-            return self.process_all(individuals)
+        if isinstance(objects, Population):
+            return self.process_all(objects)
 
-        if (isinstance(individuals, Individual)
-                and self._in_size != 1):
-            raise ValueError("Too many individuals given to the operator, "
-                             "expected 1")
-        if (isinstance(individuals, tuple)
-                and len(individuals) != self._in_size):
-            raise ValueError("Incorrect number of individuals given to "
-                             f"the operator: {len(individuals)}, "
-                             f"expected {self._in_size}")
-        out = self._process(individuals)
-        if isinstance(out, tuple):
-            if len(out) != self._out_size:
-                raise ValueError("Incorrect number of individuals returned "
-                                 f"by the operator: {len(out)}, "
-                                 f"expected {self._out_size}")
-        elif isinstance(out, Individual) and self._out_size != 1:
-            raise ValueError("Not enough individuals returned by the operator")
-        elif not isinstance(out, Individual):
-            raise TypeError("Unknown type returned by the operator: "
-                            f"{type(out)}")
-        return out
+        if not isinstance(objects, tuple):
+            raise TypeError("Argument of operator has unknown type "
+                            f"{type(objects)}")
+        elif len(objects) != self._in_size:
+            raise ValueError("Wrong number of arguments to operator "
+                             f"({len(objects)}), should be {self._in_size}.")
+
+        result = self._process(objects)
+        if not isinstance(result, tuple):
+            raise TypeError("Return of operator has unknown type "
+                            f"{type(objects)}")
+        elif len(result) != self._out_size:
+            raise ValueError("Wrong number of values returned by operator "
+                             f"({len(result)}), should be {self._out_size}.")
+        return result
 
     def process_all(
         self,
@@ -77,7 +74,7 @@ class Operator(ABC):
         specified iteration type in the initialization of this operator.
         """
         new_population = Population()
-        iteration = self._iteration_type.iterate(population)
+        iteration = self._iter_type.iterate(population)
         for batch in iteration:
             new_population.populate(self._process(batch))
         return new_population
@@ -85,12 +82,76 @@ class Operator(ABC):
     @abstractmethod
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
+        objects: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
         ...
 
     def __call__(
         self,
-        individuals: Union[Individual, tuple[Individual, ...], Population],
-    ) -> Union[Individual, tuple[Individual, ...], Population]:
-        return self.process(individuals)
+        objects: Union[tuple[Individual, ...], Population],
+    ) -> Union[tuple[Individual, ...], Population]:
+        return self.process(objects)
+
+
+class PopulationOperator(ABC):
+    """Base class for a special type evolutionary operators that only
+    works on populations.
+
+    Args:
+        in_size (int): The number of populations to input in the
+            operator.
+        out_size (int, optional): The number of populations returned by
+            the operator. Defaults to ``in_size``.
+    """
+
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+    ):
+        self._in_size = in_size
+        self._out_size = out_size
+
+    def process(
+        self,
+        objects: tuple[Population, ...],
+    ) -> tuple[Population, ...]:
+        """Processes the given individuals or populations with the
+        operator. The number of objects to input and the size of the
+        output is specified in the initialization of the operator.
+
+        Args:
+            objects (tuple[Population, ...]): A tuple of one or multiple
+                populations to process.
+
+        Returns:
+            Processed population(s).
+        """
+        if not isinstance(objects, tuple):
+            raise TypeError("Argument of operator has unknown type "
+                            f"{type(objects)}")
+        elif len(objects) != self._in_size:
+            raise ValueError("Wrong number of arguments to operator "
+                             f"({len(objects)}), should be {self._in_size}.")
+
+        result = self._process(objects)
+        if not isinstance(result, tuple):
+            raise TypeError("Returned value of operator has unknown type "
+                            f"{type(result)}")
+        elif len(result) != self._out_size:
+            raise ValueError("Wrong number of values returned by operator "
+                             f"({len(result)}), should be {self._out_size}.")
+        return result
+
+    @abstractmethod
+    def _process(
+        self,
+        objects: tuple[Population, ...],
+    ) -> tuple[Population, ...]:
+        ...
+
+    def __call__(
+        self,
+        objects: tuple[Population, ...],
+    ) -> tuple[Population, ...]:
+        return self.process(objects)
