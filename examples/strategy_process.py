@@ -23,8 +23,8 @@ process = peal.StrategyProcess(
     signature="3/1,5(2/2,14)^10",
 )
 
-tracker = peal.core.BestWorstTracker()
-statistics = peal.core.DiversityStatistics(allele=np.arange(1, 101))
+tracker = peal.callback.BestWorst()
+statistics = peal.callback.Diversity(pool=pool)
 process.start(callbacks=[tracker, statistics])
 
 print(tracker.best)

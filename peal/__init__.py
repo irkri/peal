@@ -1,10 +1,12 @@
 from peal import core
+from peal.core import callback
 from peal.core import SynchronousProcess, StrategyProcess
 
 from peal import operations
 
 from peal.breeding import Breeder
 
+import peal.fitness as evaluation
 from peal.fitness import (
     fitness,
     Fitness,

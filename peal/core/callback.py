@@ -1,5 +1,6 @@
 import numpy as np
 
+from peal.genetics import GenePool, GeneType
 from peal.population import Population
 
 
@@ -24,7 +25,7 @@ class Callback:
         """Will be called at the end of an evolutionary process."""
 
 
-class BestWorstTracker(Callback):
+class BestWorst(Callback):
     """Class that tracks the best and worst individuals in an
     evolutionary process for each generation.
 
@@ -50,29 +51,34 @@ class BestWorstTracker(Callback):
         self.worst.populate(min(population, key=lambda ind: ind.fitness))
 
 
-class DiversityStatistics(Callback):
+class Diversity(Callback):
     """A callback that computes the gene diversity in a population.
 
     Args:
-        allele (np.ndarray): A numpy array containing all possible
-            alleles each gene of an individual can have.
+        pool (GenePool): A gene pool that is used in the evolutionary
+            process to generate individuals.
 
     Attributes:
         gene_diversity (np.ndarray): A numpy array containing the gene
             diversity for each generation at each locus.
     """
 
-    def __init__(self, allele: np.ndarray):
-        self._allele = allele
+    def __init__(self, pool: GenePool):
+        self._pool = pool
+        if GeneType.CONST_SIZE not in self._pool.typing:
+            raise ValueError("Diversity not available for genomes of "
+                             "variable length")
         self.gene_diversity: np.ndarray = np.empty((0, 1), dtype=float)
 
     @property
     def diversity(self) -> np.ndarray:
         """Scaled average gene diversity as a float between 0 and 1."""
-        return (
-            self._allele.size / (self._allele.size-1)
-            * self.gene_diversity.mean(axis=1)
-        )
+        if GeneType.METRIC not in self._pool.typing:
+            return (
+                self._pool.size / (self._pool.size - 1)
+                * self.gene_diversity.mean(axis=1)
+            )
+        return self.gene_diversity.mean(axis=1)
 
     def on_start(self, population: Population):
         self.gene_diversity = np.zeros(
@@ -82,10 +88,16 @@ class DiversityStatistics(Callback):
 
     def on_generation_end(self, population: Population):
         div: np.ndarray = np.ones((population[0].genes.shape[0],))
-        for allele in self._allele:
-            div -= (
-                np.sum(population.genes == allele, axis=0) / population.size
-            )**2
+        if GeneType.METRIC not in self._pool.typing:
+            unique = set(np.hstack(list(population.genes.flatten())))
+            for value in unique:
+                div -= (
+                    np.sum(population.genes == value, axis=0)
+                    / population.size
+                )**2
+        else:
+            div = np.zeros((population[0].genes.shape[0],))
+            div += np.std(population.genes, axis=0)
         self.gene_diversity = np.vstack([
             self.gene_diversity,
             div

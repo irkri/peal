@@ -1,6 +1,6 @@
 import numpy as np
 
-from peal.genetics import GenePool
+from peal.genetics import GPPool, GPTerminal
 from peal.individual import Individual
 from peal.operations.iteration import SingleIteration
 from peal.operations.operator import Operator
@@ -127,17 +127,30 @@ class NormalDist(MutationOperator):
 
 class GPPoint(MutationOperator):
     """Point mutation used in a genetic programming algorithm.
-    This mutation replaces a node
+    This mutation replaces a node in a genome tree by a subtree.
 
     Args:
-        gene_pool (GenePool): The gene pool used to generate a
+        gene_pool (GPPool): The gene pool used to generate a genome
+            tree for individuals.
+        min_height (int, optional): The minimal height of the replacing
+            subtree. Defaults to 1.
+        max_height (int, optional): The maximal height of the replacing
+            subtree. Defaults to 1.
         prob (float, optional): The probability to mutate one node in
             the tree representation of an individual. Defaults to 0.1.
     """
 
-    def __init__(self, gene_pool: GenePool, prob: float = 0.1):
+    def __init__(
+        self,
+        gene_pool: GPPool,
+        min_height: int = 1,
+        max_height: int = 1,
+        prob: float = 0.1
+    ):
         super().__init__(in_size=1, out_size=1)
-        self._gene_pool = gene_pool
+        self._pool = gene_pool
+        self._min_height = min_height
+        self._max_height = max_height
         self._prob = prob
 
     def _process(
@@ -151,13 +164,21 @@ class GPPoint(MutationOperator):
         index = np.random.randint(0, len(ind.genes))
         # search for subtree slice starting at index in the tree
         right = index + 1
-        total = len(ind.genes[index].argtypes)
+        total = 0
+        if not isinstance(ind.genes[index], GPTerminal):
+            total = len(ind.genes[index].argtypes)
         while total > 0:
-            total += len(ind.genes[right].argtypes) - 1
+            if isinstance(ind.genes[right], GPTerminal):
+                total -= 1
+            else:
+                total -= len(ind.genes[right].argtypes) - 1
             right += 1
         ind.genes = np.concatenate((
             ind.genes[:index],
-            self._gene_pool.random_genome(rtype=ind.genes[index].rtype),
+            self._pool.random_genome(
+                rtype=ind.genes[index].rtype,
+                height=np.random.randint(self._min_height, self._max_height+1),
+            ),
             ind.genes[right:],
         ))
         return (ind, )

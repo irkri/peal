@@ -1,8 +1,26 @@
 from abc import ABC, abstractmethod
-from functools import wraps
-from typing import Callable, Union, get_type_hints
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Any, Callable, Optional, Union, get_type_hints
 
 import numpy as np
+
+
+class GeneType(Enum):
+    """Enum class for a category of a gene type.
+    Availalbe types are:
+        * ``NOMINAL``
+        * ``ORDINAL``
+        * ``METRIC``
+        * ``CONST_SIZE``
+    This way, non-comparable types in Python are forbidden.
+    """
+
+    NOMINAL = auto()
+    ORDINAL = auto()
+    METRIC = auto()
+
+    CONST_SIZE = auto()
 
 
 class GenePool(ABC):
@@ -12,15 +30,24 @@ class GenePool(ABC):
     for a given problem can have.
 
     Args:
-        shape (tuple[int] | int): The shape of a genome for a single
-            individual. Typically, this is an integer denoting the
-            number of genes the individual has.
+        typing (tuple[GeneType, ...]): The typing signature for this
+            gene pool. Have a look at the enum class :class:`GenePool`
+            for details.
     """
 
-    def __init__(self, shape: Union[tuple[int], int]):
-        if isinstance(shape, tuple):
-            raise NotImplementedError
-        self._shape = shape
+    def __init__(self, typing: tuple[GeneType, ...]):
+        self._size = 0 if GeneType.METRIC in typing else np.inf
+        self._typing = typing
+
+    @property
+    def typing(self) -> tuple[GeneType, ...]:
+        """The typing information of this gene pool."""
+        return self._typing
+
+    @property
+    def size(self) -> Union[int, float]:
+        """The number of different alleles in this gene pool."""
+        return self._size
 
     @abstractmethod
     def random_genome(self, **kwargs) -> np.ndarray:
@@ -36,25 +63,33 @@ class GenePool(ABC):
 
 
 class IntegerPool(GenePool):
-    """A gene pool only containing integers in the given range.
+    """A gene pool of constant length genomes only containing integers
+    in the given range.
 
     Args:
-        shape (tuple[int] | int): The shape of a genome for a single
-            individual. Typically, this is an integer denoting the
-            number of genes the individual has.
-        lower (int): The smallest integer that an allele in this pool
-            can be.
-        upper (int): The largest integer that an allele in this pool
-            can be.
+        shape (int): The number of genes in a genome.
+        lower (int): The smallest integer one gene can be.
+        upper (int): The largest integer one gene can be.
     """
 
-    def __init__(self, shape: Union[tuple[int], int], lower: int, upper: int):
-        super().__init__(shape)
+    def __init__(
+        self,
+        shape: int,
+        lower: int,
+        upper: int,
+    ):
+        super().__init__(typing=(GeneType.ORDINAL, GeneType.CONST_SIZE))
         self._lower = lower
         self._upper = upper
+        self._shape = shape
+        self._size = upper - lower + 1
 
     def random_genome(self, **kwargs) -> np.ndarray:
-        return np.random.randint(self._lower, self._upper, size=self._shape)
+        return np.random.randint(
+            self._lower,
+            self._upper + 1,
+            size=self._shape
+        )
 
 
 class NumberPool(GenePool):
@@ -62,24 +97,21 @@ class NumberPool(GenePool):
     range.
 
     Args:
-        shape (tuple[int] | int): The shape of a genome for a single
-            individual. Typically, this is an integer denoting the
-            number of genes the individual has.
-        lower (int | float): The lower bound of the range of numbers in
-            this pool.
-        upper (int | float): The upper bound of the range of numbers in
-            this pool.
+        shape (int): The number of genes in a genome.
+        lower (int | float): The lower bound for all genes.
+        upper (int | float): The upper bound for all genes.
     """
 
     def __init__(
         self,
-        shape: Union[tuple[int], int],
+        shape: int,
         lower: Union[int, float],
         upper: Union[int, float],
     ):
-        super().__init__(shape)
+        super().__init__(typing=(GeneType.METRIC, GeneType.CONST_SIZE))
         self._lower = lower
         self._upper = upper
+        self._shape = shape
 
     def random_genome(self, **kwargs) -> np.ndarray:
         return (
@@ -87,6 +119,33 @@ class NumberPool(GenePool):
             * np.random.random_sample(size=self._shape)
             + self._lower
         )
+
+
+@dataclass
+class GPNode:
+
+    rtype: type
+    name: str
+
+
+@dataclass
+class GPCallable(GPNode):
+
+    argtypes: dict[str, Any]
+    method: Callable[..., Any]
+
+    def __call__(self, *args) -> Any:
+        return self.method(*args)
+
+
+@dataclass
+class GPTerminal(GPNode):
+
+    value: Optional[Any] = None
+
+    @property
+    def allocated(self) -> bool:
+        return self.value is not None
 
 
 class GPPool(GenePool):
@@ -97,54 +156,64 @@ class GPPool(GenePool):
     :meth:`GPPool.allele` on a newly created instance of this class.
 
     Args:
-        shape (tuple[int] | int): The shape of a genome for a single
-            individual. In the case of a genome for genetic programming,
-            this argument will be intepreted as the minimum depth of a
-            genome tree and individual created with this pool can have.
-        max_depth (int): The maximum depth of any genome tree in this
-            gene pool.
+        min_depth (int): The minimum depth of a genome tree.
+        max_depth (int): The maximum depth of a genome tree.
     """
 
     def __init__(
         self,
-        shape: Union[tuple[int], int],
+        min_depth: int,
         max_depth: int,
     ):
-        super().__init__(shape)
-        self._elementary: dict[type, list[Callable]] = dict()
-        self._terminal: dict[type, list[Callable]] = dict()
+        super().__init__(typing=(GeneType.NOMINAL, ))
+        self._elementary: dict[type, list[GPCallable]] = dict()
+        self._terminal: dict[type, list[GPTerminal]] = dict()
+        self._min_depth = min_depth
         self._max_depth = max_depth
+
+    @property
+    def min_depth(self) -> int:
+        return self._min_depth
+
+    @property
+    def max_depth(self) -> int:
+        return self._max_depth
 
     def random_genome(self, **kwargs) -> np.ndarray:
         rtype = kwargs.get(
             "rtype",
-            np.random.choice(list(self._elementary.keys())),
+            np.random.choice(np.array(list(self._elementary.keys()))),
         )
-        height = np.random.randint(self._shape, self._max_depth)
-        stack = [(0, rtype)]
+        height = kwargs.get(
+            "height",
+            np.random.randint(self._min_depth, self._max_depth),
+        )
+        stack: list[tuple[int, type]] = [(0, rtype)]
         genes = []
         while len(stack) > 0:
             depth, rtype = stack.pop(0)
             if depth == height:
                 if rtype not in self._terminal:
-                    raise IndexError("Failed to create a GP-based genom; "
+                    raise IndexError("Failed to create a GP-based genome; "
                                      f"A terminal allele of type {rtype} "
                                      "is requested but not found.")
-                terminal = np.random.choice(self._terminal[rtype])
+                terminal = np.random.choice(np.array(self._terminal[rtype]))
                 genes.append(terminal)
             else:
                 if rtype not in self._elementary:
                     raise IndexError("Failed to create a GP-based genom; "
                                      f"An elementary allele of type {rtype} "
                                      "is requested but not found.")
-                elementary = np.random.choice(self._elementary[rtype])
+                elementary = np.random.choice(
+                    np.array(self._elementary[rtype])
+                )
                 requested_types = elementary.__dict__["argtypes"]
                 genes.append(elementary)
                 for vartype in requested_types.values():
                     stack.append((depth + 1, vartype))
         return np.array(genes)
 
-    def allele(self, func: Callable) -> Callable:
+    def allele(self, func: Callable[..., Any]) -> Callable[..., Any]:
         """Decorator that can be used on a function to add a callable
         as an allele to the pool.
         Callables with no arguments are counted as terminal symbols of
@@ -152,29 +221,51 @@ class GPPool(GenePool):
         """
         hints = get_type_hints(func).copy()
         rtype = hints.pop("return")
-        func.__dict__["rtype"] = rtype
-        func.__dict__["argtypes"] = hints
-        if func.__code__.co_argcount == 0:
-            func.__dict__["terminal"] = True
-            if rtype not in self._terminal:
-                self._terminal[rtype] = [func]
-            else:
-                self._terminal[rtype].append(func)
-        else:
-            func.__dict__["terminal"] = False
-            if rtype not in self._elementary:
-                self._elementary[rtype] = [func]
-            else:
-                self._elementary[rtype].append(func)
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            if len(kwargs) > 0:
-                raise ValueError("Keyword arguments are not supported for "
-                                 "elementary alleles of genetic programming "
-                                 "individuals.")
-            func(*args)
-        return wrapper
+        if rtype not in self._elementary:
+            self._elementary[rtype] = []
+        self._elementary[rtype].append(GPCallable(
+            rtype=rtype,
+            name=func.__name__,
+            argtypes=hints,
+            method=func,
+        ))
+        return func
+
+    def add_arguments(self, arguments: dict[str, type]):
+        """Add special terminal symbols, i.e. arguments, to the list of
+        alleles in this pool.
+        These terminal symbols do not have a fixed value but can be seen
+        as arguments that have to be supplied to each individual before
+        calculating its fitness.
+
+        Args:
+            arguments (dict[str, type]): A dictionary mapping argument
+                names to their corresponding type.
+        """
+        for name, type_ in arguments.items():
+            if type_ not in self._terminal.keys():
+                self._terminal[type_] = []
+            self._terminal[type_].append(GPTerminal(
+                rtype=type_,
+                name=name,
+            ))
+
+    def add_terminals(self, terminals: list[Any]):
+        """Add terminal symbols to the list of alleles in this pool.
+
+        Args:
+            arguments (list[Any]): A list of terminal symbols.
+        """
+        for value in terminals:
+            var = GPTerminal(
+                rtype=type(value),
+                name="",
+                value=value,
+            )
+            if type(value) not in self._terminal:
+                self._terminal[type(value)] = []
+            self._terminal[type(value)].append(var)
 
     def configure(self, min_depth: int, max_depth: int) -> "GPPool":
         """Reconfigures the GPPool object. This method can be used for
@@ -185,14 +276,12 @@ class GPPool(GenePool):
         with different arguments ``min_depth`` and ``max_depth``.
 
         Args:
-            min_depth (int): The minimum depth of a genome tree an
-                individual created with this pool can have.
-            max_depth (int): The maximum depth of any genome tree in this
-                gene pool.
+            min_depth (int): The minimum depth of a genome tree.
+            max_depth (int): The maximum depth of a genome tree.
 
         Returns:
             GPPool: This instance of the GPPool.
         """
-        self._shape = min_depth
+        self._min_depth = min_depth
         self._max_depth = max_depth
         return self
