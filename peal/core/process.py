@@ -23,9 +23,10 @@ class _AbstractProcess(ABC):
 
         Args:
             callbacks (list[Callback], optional): A number of
-                :class:`Callback` objects that can be used to track the
-                status of the evolution. If a callback is suitable for
-                this process may be noted in the classes docstring.
+                :class:`~peal.core.callback.Callback` objects that can
+                be used to track the status of the evolution. If a
+                callback is suitable for this process may be noted in
+                the classes docstring.
         """
 
 
@@ -69,15 +70,16 @@ class SynchronousProcess(Process):
             the evolution.
         generations (int): The number of generations this process will
             be repeated on the initial population.
-        selection (SelectionOperator): The selector that willbe use d.
-        reproduction (ReproductionOperator): The reproducer
+        selection (SelectionOperator): The selection operation that will
+            be used.
+        reproduction (ReproductionOperator): The reproduction operation
             that will be used.
         mutation (MutationOperator, optional): A mutation operation
             that can be specified but doesn't have to. Defaults to None.
-        integration (IntegrationTechnique): The integration technique
-            that integrates offspring created by the reproduction
-            operator into the parent population of the new generation.
-            Defaults to :class:`OffspringFirstIntegration`.
+        integration (IntegrationOperator, optional): The operation that
+            integrates offspring created by the reproduction operator
+            into the parent population of the new generation. Defaults
+            to :class:`~peal.operations.integration.OffspringFirst`.
     """
 
     init_size: int
@@ -135,13 +137,7 @@ class StrategyProcess(Process):
         fitness (Fitness): The fitness to use for evaluation.
         generations (int): The number of generations this process will
             be repeated on the initial population.
-        alpha (float, optional): The alpha value to use for mutation
-            step size change. In every generation, a single individual
-            has its own mutation step size. This is a float that gets
-            multiplied with a normally distributed number to simulate
-            mutation (this multiplication result then gets added to each
-            gene of the individual).
-        signature (str, optional): The notation Schwefel (1977) used to
+        signature (str): The notation Schwefel (1977) used to
             characterize multimembered evolutionary strategies. This is
             a string matching the expression ``a/b{,|+}c(d/e{,|+}f)^g``
             where ``{,|+}`` denotes the character ``,`` or ``+``. Other
@@ -166,6 +162,12 @@ class StrategyProcess(Process):
             offspring while ``d,f`` only selects individuals from the
             mutated and reproduced original population. The same applies
             for ``a+c`` and ``a,c``, only on population level.
+        alpha (float, optional): The alpha value to use for mutation
+            step size change. In every generation, a single individual
+            has its own mutation step size. This is a float that gets
+            multiplied with a normally distributed number to simulate
+            mutation (this multiplication result then gets added to each
+            gene of the individual).
     """
 
     generations: int

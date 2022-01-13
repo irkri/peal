@@ -42,7 +42,7 @@ def fitness(method: Callable[[Individual], float]) -> Fitness:
     """Decorator for a fitness method.
 
     Declaring your own fitness function is possible with the class
-    :class:`~peal.evaluation.fitness.Fitness` or using this decorator
+    :class:`~peal.fitness.Fitness` or using this decorator
     on your evaluation method.
     The method you want to decorate will need to have the same arguments
     and return types as described in the mentioned class.

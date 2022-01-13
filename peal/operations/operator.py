@@ -16,7 +16,8 @@ class Operator(ABC):
             the operator. Defaults to ``in_size``.
         iter_type (IterationType, optional): The type of iteration
             mechanism to use to iterate over a given population.
-            Defaults to :class:`SingleIteration`.
+            Defaults to
+            :class:`~peal.operations.iteration.SingleIteration`.
     """
 
     def __init__(

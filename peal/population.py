@@ -6,8 +6,8 @@ from peal.individual import Individual
 
 
 class Population:
-    """An iterable container for
-    :class:`~peal.population.individual.Individual` objects.
+    """An iterable container for :class:`~peal.individual.Individual`
+    objects.
 
     Args:
         individuals (Individual): One or more individuals to add.

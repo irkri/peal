@@ -9,10 +9,12 @@ import numpy as np
 class GeneType(Enum):
     """Enum class for a category of a gene type.
     Availalbe types are:
+
         * ``NOMINAL``
         * ``ORDINAL``
         * ``METRIC``
         * ``CONST_SIZE``
+
     This way, non-comparable types in Python are forbidden.
     """
 
@@ -31,7 +33,7 @@ class GenePool(ABC):
 
     Args:
         typing (tuple[GeneType, ...]): The typing signature for this
-            gene pool. Have a look at the enum class :class:`GenePool`
+            gene pool. Have a look at the enum class :class:`GeneType`
             for details.
     """
 
