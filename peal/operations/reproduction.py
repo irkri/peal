@@ -41,9 +41,9 @@ class Copy(ReproductionOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        return (objects[0].copy(), )
+        return (individuals[0].copy(), )
 
 
 class Crossover(ReproductionOperator):
@@ -62,9 +62,9 @@ class Crossover(ReproductionOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        ind1, ind2 = objects
+        ind1, ind2 = individuals
         points = np.insert(
             np.sort(
                 np.random.randint(
@@ -108,26 +108,26 @@ class MultiMix(ReproductionOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
         if self._in_size == 1:
-            return (objects[0].copy(), )
+            return (individuals[0].copy(), )
 
         parts = [
-            objects[0].genes.shape[0] // self._in_size
+            individuals[0].genes.shape[0] // self._in_size
             for _ in range(self._in_size)
         ]
-        missing = objects[0].genes.shape[0] % self._in_size
+        missing = individuals[0].genes.shape[0] % self._in_size
         for i in range(missing):
             parts[i] += 1
         parts.insert(0, 0)
 
-        genes = np.zeros_like(objects[0].genes)
-        shuffled_indices = np.arange(objects[0].genes.shape[0])
+        genes = np.zeros_like(individuals[0].genes)
+        shuffled_indices = np.arange(individuals[0].genes.shape[0])
         np.random.shuffle(shuffled_indices)
         for i in range(len(parts)-1):
             genes[shuffled_indices[parts[i]:parts[i]+parts[i+1]]] = (
-                objects[i].genes[
+                individuals[i].genes[
                     shuffled_indices[parts[i]:parts[i]+parts[i+1]]
                 ]
             )

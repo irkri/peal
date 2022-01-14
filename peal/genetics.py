@@ -125,6 +125,7 @@ class NumberPool(GenePool):
 
 @dataclass
 class GPNode:
+    """Class representation of a node in a genetic programming tree."""
 
     rtype: type
     name: str
@@ -132,6 +133,9 @@ class GPNode:
 
 @dataclass
 class GPCallable(GPNode):
+    """Special GP tree node that represents a elementary function in
+    such a tree with multiple arguments and a specific return type.
+    """
 
     argtypes: dict[str, Any]
     method: Callable[..., Any]
@@ -142,6 +146,9 @@ class GPCallable(GPNode):
 
 @dataclass
 class GPTerminal(GPNode):
+    """Special GP tree node that represents a terminal symbol, e.g. as
+    an argument for :class:`GPCallable` nodes.
+    """
 
     value: Optional[Any] = None
 
@@ -234,7 +241,7 @@ class GPPool(GenePool):
         ))
         return func
 
-    def add_arguments(self, arguments: dict[str, type]):
+    def add_arguments(self, arguments: dict[str, type]) -> None:
         """Add special terminal symbols, i.e. arguments, to the list of
         alleles in this pool.
         These terminal symbols do not have a fixed value but can be seen
@@ -253,7 +260,7 @@ class GPPool(GenePool):
                 name=name,
             ))
 
-    def add_terminals(self, terminals: list[Any]):
+    def add_terminals(self, terminals: list[Any]) -> None:
         """Add terminal symbols to the list of alleles in this pool.
 
         Args:
@@ -268,22 +275,3 @@ class GPPool(GenePool):
             if type(value) not in self._terminal:
                 self._terminal[type(value)] = []
             self._terminal[type(value)].append(var)
-
-    def configure(self, min_depth: int, max_depth: int) -> "GPPool":
-        """Reconfigures the GPPool object. This method can be used for
-        convenience to reuse the same GPPool instance as an argument to
-        a :class:`~peal.population.breeding.Breeder` as well as
-        supplying it to an evolutionary operator, e.g.
-        :class:`~peal.operations.mutation.gp.GPPoint`, but each time
-        with different arguments ``min_depth`` and ``max_depth``.
-
-        Args:
-            min_depth (int): The minimum depth of a genome tree.
-            max_depth (int): The maximum depth of a genome tree.
-
-        Returns:
-            GPPool: This instance of the GPPool.
-        """
-        self._min_depth = min_depth
-        self._max_depth = max_depth
-        return self

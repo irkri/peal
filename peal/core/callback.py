@@ -12,16 +12,16 @@ class Callback:
     the end of generations).
     """
 
-    def on_start(self, population: Population):
+    def on_start(self, population: Population) -> None:
         """Will be called at the start of an evolutionary process."""
 
-    def on_generation_start(self, population: Population):
+    def on_generation_start(self, population: Population) -> None:
         """Will be called at the start of each generation."""
 
-    def on_generation_end(self, population: Population):
+    def on_generation_end(self, population: Population) -> None:
         """Will be called at the end of each generation."""
 
-    def on_end(self, population: Population):
+    def on_end(self, population: Population) -> None:
         """Will be called at the end of an evolutionary process."""
 
 
@@ -42,11 +42,11 @@ class BestWorst(Callback):
         self.best: Population = Population()
         self.worst: Population = Population()
 
-    def on_start(self, population: Population):
+    def on_start(self, population: Population) -> None:
         self.best = Population()
         self.worst = Population()
 
-    def on_generation_end(self, population: Population):
+    def on_generation_end(self, population: Population) -> None:
         self.best.populate(max(population, key=lambda ind: ind.fitness))
         self.worst.populate(min(population, key=lambda ind: ind.fitness))
 
@@ -57,10 +57,6 @@ class Diversity(Callback):
     Args:
         pool (GenePool): A gene pool that is used in the evolutionary
             process to generate individuals.
-
-    Attributes:
-        gene_diversity (np.ndarray): A numpy array containing the gene
-            diversity for each generation at each locus.
     """
 
     def __init__(self, pool: GenePool):
@@ -72,7 +68,12 @@ class Diversity(Callback):
 
     @property
     def diversity(self) -> np.ndarray:
-        """Scaled average gene diversity as a float between 0 and 1."""
+        """For gene pools consisting of only categorical gene types,
+        this property is the scaled average gene diversity as a float
+        between 0 and 1 at each locus in a genome. For metric genomes,
+        it is the mean of standard deviations across the genes of a
+        population over multiple generations.
+        """
         if GeneType.METRIC not in self._pool.typing:
             return (
                 self._pool.size / (self._pool.size - 1)
@@ -80,13 +81,13 @@ class Diversity(Callback):
             )
         return self.gene_diversity.mean(axis=1)
 
-    def on_start(self, population: Population):
+    def on_start(self, population: Population) -> None:
         self.gene_diversity = np.zeros(
             (0, population[0].genes.shape[0]),
             dtype=float
         )
 
-    def on_generation_end(self, population: Population):
+    def on_generation_end(self, population: Population) -> None:
         div: np.ndarray = np.ones((population[0].genes.shape[0],))
         if GeneType.METRIC not in self._pool.typing:
             unique = set(np.hstack(list(population.genes.flatten())))

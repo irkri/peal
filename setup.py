@@ -2,7 +2,7 @@ from setuptools import setup
 
 metadata = dict(
     name="peal",
-    version="0.0.4",
+    version="0.0.5",
     author="alienkrieg",
     author_email="alienkrieg@gmail.com",
     description="Python Package for Evolutionary Algorithms",

@@ -18,7 +18,7 @@ class Fitness:
     def __init__(self, method: Callable[[Individual], float]):
         self._method = method
 
-    def evaluate(self, population: Union[Individual, Population]):
+    def evaluate(self, population: Union[Individual, Population]) -> None:
         """Evaluates the fitness of all individuals in the given
         population. This method changes attributes of individuals in
         ``population`` directly.
@@ -29,12 +29,11 @@ class Fitness:
         """
         if isinstance(population, Population):
             for ind in population:
-                if not ind.fitted:
-                    ind.fitness = self._method(ind)
+                ind.fitness = self._method(ind)
         elif isinstance(population, Individual):
             population.fitness = self._method(population)
 
-    def __call__(self, population: Union[Individual, Population]):
+    def __call__(self, population: Union[Individual, Population]) -> None:
         self.evaluate(population)
 
 
@@ -52,30 +51,47 @@ def fitness(method: Callable[[Individual], float]) -> Fitness:
 
 def gp_evaluate(
     individual: Individual,
-    arguments: list[dict[str, Any]],
-) -> list[float]:
-    values: list[list[Any]] = [[] for _ in range(len(arguments))]
-    for i, argset in enumerate(arguments):
-        index = len(individual.genes) - 1
-        while index >= 0:
-            while isinstance(individual.genes[index], GPTerminal):
-                if individual.genes[index].allocated:
-                    values[i].insert(0, individual.genes[index].value)
-                else:
-                    name = individual.genes[index].name
-                    if name not in argset:
-                        raise RuntimeError(f"Argument name {name} "
-                                            "not supplied")
-                    values[i].insert(0, argset[name])
-                index -= 1
-            argcount = len(individual.genes[index].argtypes)
-            values[i].insert(
-                0,
-                individual.genes[index](*values[i][-argcount:])
-            )
-            values[i] = values[i][:len(values[i])-argcount]
+    arguments: Optional[dict[str, Any]] = None,
+) -> Any:
+    """Evaluates an individual that has an genetic programming tree-like
+    genome. The evaluation executes all callables in their order they
+    appear in the tree. If arguments (i.e. unallocated variables) are
+    included in the individual, their values have to be specified in
+    ``arguments``.
+
+    Args:
+        individual (Individual): The individual to evalutate.
+        arguments (dict[str, Any], optional): A dictionary mapping
+            argument names to values. Defaults to None.
+
+    Returns:
+        A value that represents the result of the tree evaluation.
+    """
+    argset = arguments if arguments is not None else dict()
+    if "x" not in argset:
+        print(80*"=")
+        print(f"{argset=}")
+    values: list[Any] = []
+    index = len(individual.genes) - 1
+    while index >= 0:
+        while isinstance(individual.genes[index], GPTerminal):
+            if individual.genes[index].allocated:
+                values.insert(0, individual.genes[index].value)
+            else:
+                name = individual.genes[index].name
+                if name not in argset:
+                    raise RuntimeError(f"Argument name {name} "
+                                       "not supplied")
+                values.insert(0, argset[name])
             index -= 1
-    return [v[0] for v in values]
+        argcount = len(individual.genes[index].argtypes)
+        values.insert(
+            0,
+            individual.genes[index](*values[-argcount:])
+        )
+        values = values[:len(values)-argcount]
+        index -= 1
+    return values[0]
 
 
 class GPFitness(Fitness):
@@ -105,7 +121,7 @@ class GPFitness(Fitness):
         eval_ = evaluation if evaluation is not None else (
             lambda array: float(array[0])
         )
-        arguments = arguments if arguments is not None else [dict()]
+        argsets = arguments if arguments is not None else [dict()]
         super().__init__(lambda individual: eval_(
-            gp_evaluate(individual, arguments)
+            [gp_evaluate(individual, argset) for argset in argsets]
         ))

@@ -26,12 +26,12 @@ class OffspringFirst(IntegrationOperator):
 
     def _process(
         self,
-        objects: tuple[Population, ...],
+        populations: tuple[Population, ...],
     ) -> tuple[Population, ...]:
-        if not isinstance(objects, tuple):
+        if not isinstance(populations, tuple):
             raise TypeError("Operator got unexpected type, has to be a tuple")
 
-        offspring, parents = objects
+        offspring, parents = populations
         if offspring.size >= parents.size:
             return (offspring[:parents.size], )
 
@@ -57,7 +57,7 @@ class Crowded(IntegrationOperator):
 
     def _process(
         self,
-        objects: tuple[Population, ...],
+        populations: tuple[Population, ...],
     ) -> tuple[Population, ...]:
         """Merges the given offspring and parent population. Each
         offspring will be compared to a number of random individuals
@@ -73,7 +73,7 @@ class Crowded(IntegrationOperator):
         Returns:
             Population: A population of same size as ``parents``.
         """
-        offspring, parents = objects
+        offspring, parents = populations
         merged = parents.copy()
 
         for off in offspring:

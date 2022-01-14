@@ -36,9 +36,9 @@ class BitFlip(MutationOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        ind = objects[0].copy()
+        ind = individuals[0].copy()
         for i, gene in enumerate(ind.genes):
             if np.random.random_sample() <= self._prob:
                 ind.genes[i] = not gene
@@ -71,9 +71,9 @@ class UniformInt(MutationOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        ind = objects[0].copy()
+        ind = individuals[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
@@ -111,9 +111,9 @@ class NormalDist(MutationOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        ind = objects[0].copy()
+        ind = individuals[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
@@ -155,12 +155,12 @@ class GPPoint(MutationOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
         if np.random.random_sample() >= self._prob:
-            return (objects[0].copy(), )
+            return (individuals[0].copy(), )
 
-        ind = objects[0].copy()
+        ind = individuals[0].copy()
         index = np.random.randint(0, len(ind.genes))
         # search for subtree slice starting at index in the tree
         right = index + 1

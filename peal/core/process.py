@@ -110,13 +110,13 @@ class SynchronousProcess(Process):
 
             offspring.populate(self.reproduction.process(selected))
             population = self.integration.process(
-                (offspring, selected)  # type: ignore
+                (offspring, selected)
             )[0]
 
             if self.mutation is not None:
                 population = self.mutation.process(
                     population,
-                )  # type: ignore
+                )
 
             self.fitness.evaluate(population)
             for callback in callbacks:
@@ -268,11 +268,9 @@ class StrategyProcess(Process):
                         if self._ind_rho == 1:
                             offspring.populate(population[indices[0]])
                         else:
-                            offspring.populate(
-                                self._reproduction(
+                            offspring.populate(self._reproduction.process(
                                     tuple(population[i] for i in indices)
-                                )
-                            )
+                            ))
                         offspring[-1].hidden_genes = population[
                             np.random.choice(indices)
                         ].hidden_genes
@@ -290,9 +288,9 @@ class StrategyProcess(Process):
                     self.fitness.evaluate(offspring)
                     if self._ind_parents_included:
                         offspring.populate(population)
-                    offspring_populations[i] = self._selection(
+                    offspring_populations[i] = self._selection.process(
                         offspring
-                    )  # type: ignore
+                    )
 
                     for callback in callbacks:
                         callback.on_generation_end(offspring_populations[i])

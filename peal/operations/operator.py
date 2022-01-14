@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 from peal.individual import Individual
 from peal.operations.iteration import IterationType, SingleIteration
@@ -30,9 +30,20 @@ class Operator(ABC):
         self._out_size = out_size
         self._iter_type = SingleIteration() if iter_type is None else iter_type
 
+    @overload
+    def process(self, individuals: Population) -> Population:
+        ...
+
+    @overload
     def process(
         self,
-        objects: Union[tuple[Individual, ...], Population],
+        individuals: tuple[Individual, ...]
+    ) -> tuple[Individual, ...]:
+        ...
+
+    def process(
+        self,
+        individuals: Union[tuple[Individual, ...], Population],
     ) -> Union[tuple[Individual, ...], Population]:
         """Processes the given individuals or population with the
         operator. The number of objects to input and the size of the
@@ -47,20 +58,21 @@ class Operator(ABC):
         Returns:
             Processed individual(s) or population.
         """
-        if isinstance(objects, Population):
-            return self.process_all(objects)
+        if isinstance(individuals, Population):
+            return self.process_all(individuals)
 
-        if not isinstance(objects, tuple):
+        if not isinstance(individuals, tuple):
             raise TypeError("Argument of operator has unknown type "
-                            f"{type(objects)}")
-        elif len(objects) != self._in_size:
+                            f"{type(individuals)}")
+        if len(individuals) != self._in_size:
             raise ValueError("Wrong number of arguments to operator "
-                             f"({len(objects)}), should be {self._in_size}.")
+                             f"({len(individuals)}), "
+                             f"should be {self._in_size}.")
 
-        result = self._process(objects)
+        result = self._process(individuals)
         if not isinstance(result, tuple):
             raise TypeError("Return of operator has unknown type "
-                            f"{type(objects)}")
+                            f"{type(individuals)}")
         elif len(result) != self._out_size:
             raise ValueError("Wrong number of values returned by operator "
                              f"({len(result)}), should be {self._out_size}.")
@@ -83,15 +95,9 @@ class Operator(ABC):
     @abstractmethod
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
         ...
-
-    def __call__(
-        self,
-        objects: Union[tuple[Individual, ...], Population],
-    ) -> Union[tuple[Individual, ...], Population]:
-        return self.process(objects)
 
 
 class PopulationOperator(ABC):
@@ -115,7 +121,7 @@ class PopulationOperator(ABC):
 
     def process(
         self,
-        objects: tuple[Population, ...],
+        populations: tuple[Population, ...],
     ) -> tuple[Population, ...]:
         """Processes the given individuals or populations with the
         operator. The number of objects to input and the size of the
@@ -128,14 +134,15 @@ class PopulationOperator(ABC):
         Returns:
             Processed population(s).
         """
-        if not isinstance(objects, tuple):
+        if not isinstance(populations, tuple):
             raise TypeError("Argument of operator has unknown type "
-                            f"{type(objects)}")
-        elif len(objects) != self._in_size:
+                            f"{type(populations)}")
+        elif len(populations) != self._in_size:
             raise ValueError("Wrong number of arguments to operator "
-                             f"({len(objects)}), should be {self._in_size}.")
+                             f"({len(populations)}), "
+                             f"should be {self._in_size}.")
 
-        result = self._process(objects)
+        result = self._process(populations)
         if not isinstance(result, tuple):
             raise TypeError("Returned value of operator has unknown type "
                             f"{type(result)}")
@@ -147,12 +154,6 @@ class PopulationOperator(ABC):
     @abstractmethod
     def _process(
         self,
-        objects: tuple[Population, ...],
+        populations: tuple[Population, ...],
     ) -> tuple[Population, ...]:
         ...
-
-    def __call__(
-        self,
-        objects: tuple[Population, ...],
-    ) -> tuple[Population, ...]:
-        return self.process(objects)

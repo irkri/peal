@@ -64,6 +64,9 @@ fig, ax = plt.subplots(2, 1)
 ax[0].plot(tracker.best.fitness, color="blue")
 ax[0].set_title("Fitness/Diversity")
 ax[1].plot(X, np.exp(-X**2))
-ax[1].plot(X, peal.evaluation.gp_evaluate(tracker.best[-1], args))
+ax[1].plot(
+    X,
+    [peal.evaluation.gp_evaluate(tracker.best[-1], argset) for argset in args]
+)
 
 plt.show()

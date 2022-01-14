@@ -25,9 +25,9 @@ class Tournament(SelectionOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
-        return (max(objects, key=lambda x: x.fitness).copy(), )
+        return (max(individuals, key=lambda x: x.fitness).copy(), )
 
 
 class Best(SelectionOperator):
@@ -46,11 +46,11 @@ class Best(SelectionOperator):
 
     def _process(
         self,
-        objects: tuple[Individual, ...],
+        individuals: tuple[Individual, ...],
     ) -> tuple[Individual, ...]:
         return tuple(
             x.copy() for x in sorted(
-                objects,
+                individuals,
                 key=lambda x: x.fitness,
                 reverse=True,
             )
