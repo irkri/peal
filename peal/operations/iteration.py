@@ -1,24 +1,25 @@
 from abc import abstractmethod
-from typing import Iterator, Optional, Union
+from typing import Iterator, Optional
 
 import numpy as np
 
-from peal.population import Individual, Population
+from peal.individual import Individual
+from peal.population import Population
 
 
 class IterationType:
-    """Abstract class for an instruction how to iterate over a
+    """Abstract class for an instruction on how to iterate over a
     population.
     """
 
-    def __init__(self, output_size: int):
-        self._out_size = output_size
+    def __init__(self, out_size: int):
+        self._out_size = out_size
 
     @abstractmethod
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         """Returns an iterator over the given population. The iterator
         contains individuals or tuples of individuals.
         """
@@ -30,14 +31,14 @@ class SingleIteration(IterationType):
     """
 
     def __init__(self):
-        super().__init__(1)
+        super().__init__(out_size=1)
 
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         for i in range(population.size):
-            yield population[i]
+            yield (population[i], )
 
 
 class RandomSingleIteration(IterationType):
@@ -50,15 +51,15 @@ class RandomSingleIteration(IterationType):
     """
 
     def __init__(self, probability: float):
-        super().__init__(1)
+        super().__init__(out_size=1)
         self._probability = probability
 
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         for i in range(population.size):
-            yield population[i]
+            yield (population[i], )
 
 
 class StraightIteration(IterationType):
@@ -72,13 +73,13 @@ class StraightIteration(IterationType):
     """
 
     def __init__(self, batch_size: int):
-        super().__init__(batch_size)
+        super().__init__(out_size=batch_size)
         self._batch_size = batch_size
 
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         for i in range(0, population.size, self._batch_size):
             yield tuple(population[i:i+self._batch_size])
 
@@ -95,14 +96,14 @@ class RandomStraightIteration(IterationType):
     """
 
     def __init__(self, batch_size: int, probability: float):
-        super().__init__(batch_size)
+        super().__init__(out_size=batch_size)
         self._batch_size = batch_size
         self._probability = probability
 
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         for i in range(0, population.size, self._batch_size):
             if np.random.random_sample() <= self._probability:
                 yield tuple(population[i:i+self._batch_size])
@@ -121,14 +122,14 @@ class NRandomBatchesIteration(IterationType):
     """
 
     def __init__(self, batch_size: int = 1, total: Optional[int] = None):
-        super().__init__(batch_size)
+        super().__init__(out_size=batch_size)
         self._batch_size = batch_size
         self._total = total
 
     def iterate(
         self,
         population: Population,
-    ) -> Union[Iterator[Individual], Iterator[tuple[Individual, ...]]]:
+    ) -> Iterator[tuple[Individual, ...]]:
         total = self._total if self._total is not None else population.size
         for _ in range(total):
             indices = np.random.choice(

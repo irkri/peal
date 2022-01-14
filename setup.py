@@ -2,19 +2,14 @@ from setuptools import setup
 
 metadata = dict(
     name="peal",
-    version="0.0.3",
+    version="0.0.5",
     author="alienkrieg",
     author_email="alienkrieg@gmail.com",
-    description="A Python Package for Evolutionary Algorithms",
+    description="Python Package for Evolutionary Algorithms",
     packages=[
         "peal",
         "peal.core",
-        "peal.evaluation",
         "peal.operations",
-        "peal.operations.mutation",
-        "peal.operations.reproduction",
-        "peal.operations.selection",
-        "peal.population",
     ],
     ext_package="",
     ext_modules=[],

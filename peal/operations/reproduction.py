@@ -1,9 +1,49 @@
-from typing import Union
+from typing import Optional
 
 import numpy as np
 
-from peal.operations.reproduction.base import ReproductionOperator
+from peal.operations.iteration import (
+    IterationType,
+    SingleIteration,
+    RandomStraightIteration
+)
+from peal.operations.operator import Operator
 from peal.population import Individual
+
+
+class ReproductionOperator(Operator):
+    """Operator for the reproduction of individuals in a popoulation."""
+
+    def __init__(
+        self,
+        in_size: int,
+        out_size: int,
+        probability: float = 1.0,
+        iter_type: Optional[IterationType] = None,
+    ):
+        if iter_type is None:
+            iter_type = RandomStraightIteration(
+                batch_size=in_size,
+                probability=probability
+            )
+        super().__init__(
+            in_size=in_size,
+            out_size=out_size,
+            iter_type=iter_type,
+        )
+
+
+class Copy(ReproductionOperator):
+    """Simple reproduction operator that copies a single individual."""
+
+    def __init__(self):
+        super().__init__(in_size=1, out_size=1, iter_type=SingleIteration())
+
+    def _process(
+        self,
+        individuals: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        return (individuals[0].copy(), )
 
 
 class Crossover(ReproductionOperator):
@@ -17,34 +57,32 @@ class Crossover(ReproductionOperator):
     """
 
     def __init__(self, npoints: int = 2, probability: float = 0.5):
-        super().__init__(2, 2, probability)
+        super().__init__(in_size=2, out_size=2, probability=probability)
         self._npoints = npoints
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if not isinstance(individuals, tuple):
-            raise TypeError("Crossover expects a tuple of individuals")
-
+        individuals: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        ind1, ind2 = individuals
         points = np.insert(
             np.sort(
                 np.random.randint(
                     1,
-                    len(individuals[0].genes),
+                    len(ind1.genes),
                     size=self._npoints
                 )
             ),
             [0, -1],
-            [0, len(individuals[0].genes)]
+            [0, len(ind1.genes)]
         )
         start = self._npoints % 2
-        off1, off2 = individuals[0].copy(), individuals[1].copy()
+        off1, off2 = ind1.copy(), ind2.copy()
         for i in range(start, self._npoints+(1-start), 2):
-            off1.genes[points[i]:points[i+1]] = individuals[1].genes[
+            off1.genes[points[i]:points[i+1]] = ind2.genes[
                 points[i]:points[i+1]
             ]
-            off2.genes[points[i]:points[i+1]] = individuals[0].genes[
+            off2.genes[points[i]:points[i+1]] = ind1.genes[
                 points[i]:points[i+1]
             ]
         return off1, off2
@@ -66,16 +104,14 @@ class MultiMix(ReproductionOperator):
     """
 
     def __init__(self, in_size: int = 2, probability: float = 0.5):
-        super().__init__(in_size, 1, probability)
+        super().__init__(in_size=in_size, out_size=1, probability=probability)
 
     def _process(
         self,
-        individuals: Union[Individual, tuple[Individual, ...]],
-    ) -> Union[Individual, tuple[Individual, ...]]:
-        if isinstance(individuals, Individual):
-            if self._in_size > 1:
-                raise TypeError("Crossover expects a tuple of individuals")
-            return individuals.copy()
+        individuals: tuple[Individual, ...],
+    ) -> tuple[Individual, ...]:
+        if self._in_size == 1:
+            return (individuals[0].copy(), )
 
         parts = [
             individuals[0].genes.shape[0] // self._in_size
@@ -96,4 +132,4 @@ class MultiMix(ReproductionOperator):
                 ]
             )
         new_ind = Individual(genes)
-        return new_ind
+        return (new_ind, )

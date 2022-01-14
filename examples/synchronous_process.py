@@ -6,6 +6,8 @@ import peal
 A = np.array([4, 74, 43, 23, 0])
 B = np.array([8, 34, 65, 21, 100])
 
+pool = peal.genetics.IntegerPool(shape=A.size, lower=0, upper=101)
+
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
@@ -14,8 +16,10 @@ def evaluate(individual: peal.Individual) -> float:
 
 
 process = peal.SynchronousProcess(
-    breeder=peal.IntegerBreeder(size=A.size, lower=1, upper=100),
+    breeder=peal.Breeder(pool),
     fitness=evaluate,
+    init_size=100,
+    generations=100,
     selection=peal.operations.selection.Tournament(size=3),
     mutation=peal.operations.mutation.UniformInt(
         prob=0.01,
@@ -24,44 +28,15 @@ process = peal.SynchronousProcess(
     ),
     reproduction=peal.operations.reproduction.Crossover(
         npoints=1,
-        probability=0.7
+        probability=0.7,
     ),
+    integration=peal.operations.integration.Crowded(10),
 )
 
-crowded_process = peal.SynchronousProcess(
-    breeder=peal.IntegerBreeder(A.size, lower=1, upper=100),
-    fitness=evaluate,
-    selection=peal.operations.selection.Tournament(size=3),
-    mutation=peal.operations.mutation.UniformInt(
-        prob=0.01,
-        lowest=0,
-        highest=100,
-    ),
-    reproduction=peal.operations.reproduction.Crossover(
-        npoints=1,
-        probability=0.7
-    ),
-    integration=peal.core.integration.CrowdedIntegration(10),
-)
+tracker = peal.callback.BestWorst()
+statistics = peal.callback.Diversity(pool=pool)
 
-tracker = peal.evaluation.BestWorstTracker()
-statistics = peal.evaluation.DiversityStatistics(allele=np.arange(1, 101))
-crowded_statistics = peal.evaluation.DiversityStatistics(
-    allele=np.arange(1, 101)
-)
-crowded_tracker = peal.evaluation.BestWorstTracker()
-
-process.start(
-    population_size=100,
-    ngen=100,
-    callbacks=[tracker, statistics]
-)
-
-crowded_process.start(
-    population_size=100,
-    ngen=100,
-    callbacks=[crowded_tracker, crowded_statistics]
-)
+process.start(callbacks=[tracker, statistics])
 
 print(tracker.best)
 
@@ -69,14 +44,10 @@ print(tracker.best)
 
 fig, ax = plt.subplots(2, 1, figsize=(10, 8))
 
-ax[0].plot(tracker.best.fitness, label="best (normal)")
-ax[0].plot(crowded_tracker.best.fitness, label="best (crowded)")
+ax[0].plot(tracker.best.fitness)
 ax[0].set_title("Fitness")
-ax[0].legend(loc="best")
 
-ax[1].plot(statistics.diversity, label="normal")
-ax[1].plot(crowded_statistics.diversity, label="crowded")
+ax[1].plot(statistics.diversity)
 ax[1].set_title("Diversity")
-ax[1].legend(loc="best")
 
 plt.show()

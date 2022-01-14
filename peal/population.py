@@ -1,13 +1,13 @@
-from typing import Optional, Union
+from typing import Optional, SupportsIndex, Union, overload
 
 import numpy as np
 
-from peal.population.individual import Individual
+from peal.individual import Individual
 
 
 class Population:
-    """An iterable container for
-    :class:`~peal.population.individual.Individual` objects.
+    """An iterable container for :class:`~peal.individual.Individual`
+    objects.
 
     Args:
         individuals (Individual): One or more individuals to add.
@@ -107,13 +107,32 @@ class Population:
         self._iter_id += 1
         return self._individuals[self._iter_id]
 
-    def __getitem__(self, key):
+    @overload
+    def __getitem__(self, key: SupportsIndex) -> Individual:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> "Population":
+        ...
+
+    def __getitem__(
+        self,
+        key: Union[SupportsIndex, slice],
+    ) -> Union["Population", Individual]:
         if isinstance(key, slice):
             return Population(tuple(self._individuals[key]))
         return self._individuals.__getitem__(key)
 
-    def __setitem__(self, key, value):
-        self._individuals.__setitem__(key, value)
+    @overload
+    def __setitem__(self, key: SupportsIndex, value: Individual) -> None:
+        ...
+
+    @overload
+    def __setitem__(self, key: slice, value: tuple[Individual]) -> None:
+        ...
+
+    def __setitem__(self, *args) -> None:
+        self._individuals.__setitem__(*args)
 
     def __str__(self) -> str:
         return self.summary()
