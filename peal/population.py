@@ -94,8 +94,12 @@ class Population:
     def copy(self) -> "Population":
         """Returns a copy of this population without copying the
         individuals."""
-        copy = Population(self)
-        return copy
+        return Population(self)
+
+    def deepcopy(self) -> "Population":
+        """Returns a deep copy of this population that is also copying
+        the individuals."""
+        return Population(tuple(indiv.copy() for indiv in self._individuals))
 
     def __iter__(self) -> "Population":
         self._iter_id = -1

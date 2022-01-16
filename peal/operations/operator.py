@@ -14,9 +14,8 @@ class Operator(ABC):
             operator.
         out_size (int, optional): The number of individuals returned by
             the operator. Defaults to ``in_size``.
-        iter_type (IterationType, optional): The type of iteration
-            mechanism to use to iterate over a given population.
-            Defaults to
+        iter_type (IterationType, optional): The iteration type of the
+            iterator. Defaults to
             :class:`~peal.operations.iteration.SingleIteration`.
     """
 
@@ -29,6 +28,22 @@ class Operator(ABC):
         self._in_size = in_size
         self._out_size = out_size
         self._iter_type = SingleIteration() if iter_type is None else iter_type
+
+    @property
+    def iter_type(self) -> IterationType:
+        """The type of iteration through a population to use if the
+        operators :meth:`process` method is called on a population. This
+        leads to the processing of single individuals in the population.
+        In which order they are processed or how many individuals are
+        processed at once will be specified by such an iteration type.
+        """
+        return self._iter_type
+
+    @iter_type.setter
+    def iter_type(self, iter_type: IterationType) -> None:
+        if not isinstance(iter_type, IterationType):
+            raise TypeError(f"Expected IterationType, got {type(iter_type)}")
+        self._iter_type = iter_type
 
     @overload
     def process(self, individuals: Population) -> Population:
@@ -101,7 +116,7 @@ class Operator(ABC):
 
 
 class PopulationOperator(ABC):
-    """Base class for a special type evolutionary operators that only
+    """Base class for a special type of evolutionary operators that only
     works on populations.
 
     Args:

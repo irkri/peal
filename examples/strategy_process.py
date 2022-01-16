@@ -4,23 +4,22 @@ import numpy as np
 import peal
 
 A = np.array([4, 74, 43, 23, 0])
-B = np.array([8, 34, 65, 21, 100])
 
 pool = peal.genetics.NumberPool(shape=A.size, lower=0, upper=101)
 
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
-    """Negative MSE comparing individuals genes to A and B."""
-    return -np.mean((A-individual.genes)**2) - np.mean((B-individual.genes)**2)
+    """Negative MSE comparing individuals genes to A."""
+    return -np.mean((A - individual.genes)**2)
 
 
 process = peal.StrategyProcess(
     breeder=peal.Breeder(gene_pool=pool),
     fitness=evaluate,
     generations=10,
-    alpha=1.01,
-    signature="3/1,5(2/2,14)^10",
+    alpha=1.3,
+    signature="1,2(2/2,10)^10",
 )
 
 tracker = peal.callback.BestWorst()

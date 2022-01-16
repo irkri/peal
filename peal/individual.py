@@ -18,14 +18,14 @@ class Individual:
     genes: np.ndarray
     fitness: float = field(default=0.0, init=False, compare=True)
     hidden_genes: np.ndarray = field(
-        default_factory=lambda: np.empty((0,)),
+        default_factory=lambda: np.ones((1,), dtype=np.float32),
         init=False,
         repr=False,
     )
 
     def copy(self) -> "Individual":
-        """Creates and returns a shallow copy of this individual."""
+        """Creates and returns a copy of this individual."""
         ind = Individual(self.genes.copy())
         ind.fitness = self.fitness
-        ind.hidden_genes = self.hidden_genes
+        ind.hidden_genes = self.hidden_genes.copy()
         return ind

@@ -3,15 +3,16 @@ from dataclasses import dataclass, field
 import re
 from typing import ClassVar, Optional
 
-import numpy as np
-
 from peal.breeding import Breeder
 from peal.core.callback import Callback
 from peal.fitness import Fitness
+from peal.operations.iteration import NRandomBatchesIteration
 from peal.operations.mutation import MutationOperator, NormalDist
-from peal.operations.reproduction import ReproductionOperator, MultiMix
-from peal.operations.selection import SelectionOperator, Best
-from peal.operations.integration import IntegrationOperator, OffspringFirst
+from peal.operations.reproduction import (
+    EquiMix, ReproductionOperator, MultiMix
+)
+from peal.operations.selection import BestMean, SelectionOperator, Best
+from peal.operations.integration import IntegrationOperator, FirstThingsFirst
 from peal.population import Population
 
 
@@ -79,7 +80,7 @@ class SynchronousProcess(Process):
         integration (IntegrationOperator, optional): The operation that
             integrates offspring created by the reproduction operator
             into the parent population of the new generation. Defaults
-            to :class:`~peal.operations.integration.OffspringFirst`.
+            to :class:`~peal.operations.integration.FirstThingsFirst`.
     """
 
     init_size: int
@@ -88,42 +89,34 @@ class SynchronousProcess(Process):
     reproduction: ReproductionOperator
     mutation: Optional[MutationOperator] = None
     integration: IntegrationOperator = field(
-        default_factory=OffspringFirst
+        default_factory=FirstThingsFirst
     )
 
     def start(self, callbacks: Optional[list[Callback]] = None) -> None:
         callbacks = [] if callbacks is None else callbacks
 
-        population = Population()
-        population.populate(self.breeder.breed(self.init_size))
-        self.fitness.evaluate(population)
+        parents = self.breeder.breed(self.init_size)
+        self.fitness.evaluate(parents)
         for callback in callbacks:
-            callback.on_start(population)
+            callback.on_start(parents)
 
         for _ in range(self.generations):
 
             for callback in callbacks:
-                callback.on_generation_start(population)
+                callback.on_generation_start(parents)
 
-            offspring = Population()
-            selected = self.selection.process(population)
-
-            offspring.populate(self.reproduction.process(selected))
-            population = self.integration.process(
-                (offspring, selected)
-            )[0]
-
+            offspring = self.reproduction.process(parents)
             if self.mutation is not None:
-                population = self.mutation.process(
-                    population,
-                )
+                offspring = self.mutation.process(offspring)
+            self.fitness.evaluate(offspring)
+            offspring, = self.integration.process((offspring, parents))
+            parents = self.selection.process(offspring)
 
-            self.fitness.evaluate(population)
             for callback in callbacks:
-                callback.on_generation_end(population)
+                callback.on_generation_end(parents)
 
         for callback in callbacks:
-            callback.on_end(population)
+            callback.on_end(parents)
 
 
 @dataclass
@@ -180,113 +173,78 @@ class StrategyProcess(Process):
     def __post_init__(self):
         self._initialize_parameters(self.signature)
 
-    def _initialize_parameters(self, signature: str):
+    def _initialize_parameters(self, signature: str) -> None:
         # evaluates the given signature of the evolutionary strategy
         match = re.search(self.signature_regex, signature)
         if match is None:
             raise ValueError("Given signature does not match the "
                              "required pattern")
         matches = match.groups()
-        self._ind_parents_included: bool = matches[6] == "+"
-        self._pop_parents_included: bool = matches[2] == "+"
+        self._ind_parent_selection: bool = matches[6] == "+"
+        self._pop_parent_selection: bool = matches[2] == "+"
         # mu: number of parents
         self._ind_mu: int = int(matches[4])
         self._pop_mu: int = 1 if matches[0] is None else int(matches[0])
         # lambda: number of offspring
-        self._ind_lambda: int = int(matches[7])
-        self._pop_lambda: int = 1 if matches[3] is None else int(matches[3])
+        ind_lambda: int = int(matches[7])
+        pop_lambda: int = 1 if matches[3] is None else int(matches[3])
         # rho: mixin proportion number
-        self._ind_rho: int = 1 if matches[5] is None else int(matches[5][1:])
-        self._pop_rho: int = 1 if matches[1] is None else int(matches[1][1:])
+        ind_rho: int = 1 if matches[5] is None else int(matches[5][1:])
+        pop_rho: int = 1 if matches[1] is None else int(matches[1][1:])
         # gamma: cycle number for single population evolution
         self._ind_gamma: int = 1 if matches[8] is None else int(matches[8][1:])
         # operators
         self._selection = Best(
             in_size=(
-                self._ind_lambda + self._ind_mu if self._ind_parents_included
-                else self._ind_lambda
+                ind_lambda + self._ind_mu if self._ind_parent_selection
+                else ind_lambda
             ),
             out_size=self._ind_mu,
         )
-        self._reproduction = MultiMix(in_size=self._ind_rho)
+        self._pop_selection = BestMean(
+            in_size=(
+                pop_lambda + self._pop_mu if self._pop_parent_selection
+                else pop_lambda
+            ),
+            out_size=self._pop_mu,
+        )
+        self._reproduction = MultiMix(in_size=ind_rho)
+        self._reproduction.iter_type = NRandomBatchesIteration(
+            batch_size=ind_rho,
+            total=ind_lambda,
+        )
+        self._pop_reproduction = EquiMix(
+            in_size=self._pop_mu,
+            out_size=pop_lambda,
+            group_size=pop_rho,
+        )
+        self._mutation = NormalDist(alpha=self.alpha, prob=1.0)
 
-    def start(self, callbacks: Optional[list[Callback]] = None):
+    def start(self, callbacks: Optional[list[Callback]] = None) -> None:
         callbacks = [] if callbacks is None else callbacks
 
-        # initialize self._pop_mu populations of size self._ind_mu
         populations: list[Population] = []
         for i in range(self._pop_mu):
-            populations.append(Population())
-            populations[-1].populate(self.breeder.breed(self._ind_mu))
-            for j, indiv in enumerate(populations[-1]):
-                indiv.hidden_genes = np.array([1], dtype=np.float32)
-            self.fitness.evaluate(populations[-1])
+            populations.append(self.breeder.breed(self._ind_mu))
+            if self._pop_parent_selection:
+                self.fitness.evaluate(populations[-1])
             for callback in callbacks:
                 callback.on_start(populations[-1])
 
         for _ in range(self.generations):
-            # create self._pop_lambda new populations
-            # to do so, take self._pop_rho populations to create a
-            # single new one by throwing a similar proportion of
-            # individuals from these populations together
-            offspring_populations: list[Population] = []
-            population_parent_indices = [
-                np.random.randint(
-                    0,
-                    self._pop_mu,
-                    size=self._pop_rho,
-                ) for _ in range(self._pop_lambda)
-            ]
-            for indices in population_parent_indices:
-                new_population = Population()
-                parts = [self._ind_mu // self._pop_rho
-                         for _ in range(self._pop_rho)]
-                for i in range(self._ind_mu % self._pop_rho):
-                    parts[i % self._pop_rho] += 1
-                for i in indices:
-                    for j in parts:
-                        new_population.populate(populations[i][0:j])
-                offspring_populations.append(new_population)
+            offspring_populations = list(self._pop_reproduction.process(
+                tuple(populations)
+            ))
 
-            # now evolve each population according to the supplied
-            # evolutionary strategy on individuals level
             for _ in range(self._ind_gamma):
                 for i, population in enumerate(offspring_populations):
                     for callback in callbacks:
                         callback.on_generation_start(population)
 
-                    # create offspring for each population
-                    selected_parent_indices = [
-                        np.random.randint(
-                            0,
-                            population.size,
-                            size=self._ind_rho,
-                        ) for _ in range(self._ind_lambda)
-                    ]
-                    offspring = Population()
-                    for indices in selected_parent_indices:
-                        if self._ind_rho == 1:
-                            offspring.populate(population[indices[0]])
-                        else:
-                            offspring.populate(self._reproduction.process(
-                                    tuple(population[i] for i in indices)
-                            ))
-                        offspring[-1].hidden_genes = population[
-                            np.random.choice(indices)
-                        ].hidden_genes
-
-                    # apply a mutation to each individual
-                    for j, individual in enumerate(offspring):
-                        individual.hidden_genes *= (
-                            np.random.choice([self.alpha, 1/self.alpha])
-                        )
-                        offspring[j] = NormalDist(
-                            1.0, 0, individual.hidden_genes[0]**2
-                        ).process((individual, ))[0]
-
-                    # select self._ind_mu individuals
+                    offspring = self._reproduction.process(population)
+                    offspring = self._mutation.process(offspring)
                     self.fitness.evaluate(offspring)
-                    if self._ind_parents_included:
+                    if self._ind_parent_selection:
                         offspring.populate(population)
                     offspring_populations[i] = self._selection.process(
                         offspring
@@ -295,13 +253,9 @@ class StrategyProcess(Process):
                     for callback in callbacks:
                         callback.on_generation_end(offspring_populations[i])
 
-            # next, select self._pop_mu populations according to
-            # their mean fitness
-            if self._pop_parents_included:
+            if self._pop_parent_selection:
                 for population in populations:
                     offspring_populations.append(population)
-            populations = sorted(
-                offspring_populations,
-                key=lambda population: np.mean(population.fitness),
-                reverse=True,
-            )[:self._pop_mu]
+            populations = list(
+                self._pop_selection.process(tuple(offspring_populations))
+            )

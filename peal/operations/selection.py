@@ -1,6 +1,12 @@
-from peal.operations.iteration import NRandomBatchesIteration
-from peal.operations.operator import Operator
-from peal.population import Individual
+import numpy as np
+
+from peal.operations.iteration import (
+    NRandomBatchesIteration,
+    StraightIteration,
+)
+from peal.operations.operator import Operator, PopulationOperator
+from peal.individual import Individual
+from peal.population import Population
 
 
 class SelectionOperator(Operator):
@@ -32,7 +38,7 @@ class Tournament(SelectionOperator):
 
 class Best(SelectionOperator):
     """A selection operator that returns the top ``out_size``
-    individuals.
+    individuals of a population.
     """
 
     def __init__(self, in_size: int, out_size: int):
@@ -41,7 +47,7 @@ class Best(SelectionOperator):
         super().__init__(
             in_size=in_size,
             out_size=out_size,
-            iter_type=NRandomBatchesIteration(batch_size=in_size,),
+            iter_type=StraightIteration(batch_size=in_size),
         )
 
     def _process(
@@ -53,5 +59,29 @@ class Best(SelectionOperator):
                 individuals,
                 key=lambda x: x.fitness,
                 reverse=True,
-            )
+            )[:self._out_size]
         )
+
+
+class BestMean(PopulationOperator):
+    """Operator that selects populations out of a tuple of populations
+    based on their highest mean fitness.
+
+    Args:
+        in_size (int): Number of populations to input.
+        out_size (int): Number of populations to select. It has to hold
+            that ``in_size >= out_size``.
+    """
+
+    def __init__(self, in_size: int, out_size: int):
+        super().__init__(in_size=in_size, out_size=out_size)
+
+    def _process(
+        self,
+        populations: tuple[Population, ...],
+    ) -> tuple[Population, ...]:
+        return tuple(pop.deepcopy() for pop in sorted(
+            populations,
+            key=lambda pop: np.mean(pop.fitness),
+            reverse=True,
+        )[:self._out_size])

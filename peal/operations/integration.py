@@ -14,30 +14,49 @@ class IntegrationOperator(PopulationOperator):
         super().__init__(in_size=2, out_size=1)
 
 
-class OffspringFirst(IntegrationOperator):
+class FirstThingsFirst(IntegrationOperator):
     """This integration operation merges the individuals of offspring
     and parents into a new population of same size as the parent
-    population. At first, individuals from the offspring population are
-    taken.
-    If individuals are missing after (part of) the offspring merged,
-    parents will be drawn (in the order they appear in ``parents``)
-    until the desired size is reached.
+    population. At first, individuals from the first population supplied
+    are taken.
+    If individuals are missing after this population (either offspring
+    or parents) merged, individuals from the other population are taken
+    in the order they appear until the requested size is reached.
+
+    Args:
+        size (int): The size of the output population. There are two
+            special cases. If ``size=-1`` then the output population
+            will have the same size as the second population that is
+            given to the operator, if ``size=-2`` the first populations
+            size will be taken. For every other positive integer this
+            argument is taken literally. Defaults to -1.
     """
+
+    def __init__(self, size: int = -1):
+        super().__init__()
+        if not isinstance(size, int) or size < -2 or size == 0:
+            raise ValueError("Attribute size has to be -2, -1 or a non-zero "
+                             "positive integer")
+        self._size = size
 
     def _process(
         self,
         populations: tuple[Population, ...],
     ) -> tuple[Population, ...]:
-        if not isinstance(populations, tuple):
-            raise TypeError("Operator got unexpected type, has to be a tuple")
+        pop1, pop2 = populations
+        req_size = self._size
+        if self._size == -1:
+            req_size = pop2.size
+        elif self._size == -2:
+            req_size = pop1.size
+        elif self._size > pop1.size + pop2.size:
+            raise RuntimeError("Given populations are too small for "
+                               "requested size")
 
-        offspring, parents = populations
-        if offspring.size >= parents.size:
-            return (offspring[:parents.size], )
-
-        merged = offspring.copy()
-        for i in range(parents.size-offspring.size):
-            merged.populate(parents[i])
+        if pop1.size >= req_size:
+            return (pop1[:req_size], )
+        merged = pop1.deepcopy()
+        merged.populate(pop2[:req_size-pop1.size].deepcopy())
 
         return (merged, )
 

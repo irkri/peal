@@ -7,8 +7,9 @@ from peal.operations.iteration import (
     SingleIteration,
     RandomStraightIteration
 )
-from peal.operations.operator import Operator
-from peal.population import Individual
+from peal.operations.operator import Operator, PopulationOperator
+from peal.individual import Individual
+from peal.population import Population
 
 
 class ReproductionOperator(Operator):
@@ -131,5 +132,50 @@ class MultiMix(ReproductionOperator):
                     shuffled_indices[parts[i]:parts[i]+parts[i+1]]
                 ]
             )
-        new_ind = Individual(genes)
+        new_ind = individuals[0].copy()
+        new_ind.genes = genes
         return (new_ind, )
+
+
+class EquiMix(PopulationOperator):
+    """Operator that mixes a number of populations to create a new ones.
+    The number of individuals taken from each input population is the
+    same. All populations are therefore expected to have the same size.
+
+    Args:
+        in_size (int): Number of input populations.
+        out_size (int): Number of populations to create by mixing the
+            input populations.
+        group_size (int): Number of (randomly chosen) populations to
+            mix for one new population. Each of these populations give
+            the same number of individuals.
+    """
+
+    def __init__(self, in_size: int, out_size: int, group_size: int):
+        super().__init__(in_size=in_size, out_size=out_size)
+        self._group_size = group_size
+
+    def _process(
+        self,
+        populations: tuple[Population, ...],
+    ) -> tuple[Population, ...]:
+        offspring_populations: list[Population] = []
+        population_parent_indices = [
+            np.random.randint(
+                0,
+                self._in_size,
+                size=self._group_size,
+            ) for _ in range(self._out_size)
+        ]
+        n_indivs = populations[0].size
+        for indices in population_parent_indices:
+            new_population = Population()
+            parts = [n_indivs // self._group_size
+                     for _ in range(self._group_size)]
+            for i in range(n_indivs % self._group_size):
+                parts[i % self._group_size] += 1
+            for i in indices:
+                for j in parts:
+                    new_population.populate(populations[i][0:j].deepcopy())
+            offspring_populations.append(new_population)
+        return tuple(offspring_populations)

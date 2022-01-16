@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 
 from peal.genetics import GPPool, GPTerminal
@@ -96,6 +97,13 @@ class NormalDist(MutationOperator):
             values are drawn from. Defaults to 0.
         sigma (float, optional): The standard deviation of the normal
             distribution the values are drawn from. Defaults to 1.
+        alpha (float, optional): If a float value is given, the
+            mutation step size (i.e. the standard deviation of a
+            normal distribution) will be multiplied by this float or its
+            inverse (randomly chosen) each time an individual is passed
+            through this operator. Each individual then has its own
+            mutation step size saved in their object representation as
+            hidden parameters. Defaults to None.
     """
 
     def __init__(
@@ -103,11 +111,13 @@ class NormalDist(MutationOperator):
         prob: float = 0.1,
         mu: float = 0.0,
         sigma: float = 1.0,
+        alpha: Optional[float] = None,
     ):
         super().__init__(1, 1)
         self._prob = prob
         self._mu = mu
         self._sigma = sigma
+        self._alpha = alpha
 
     def _process(
         self,
@@ -117,9 +127,15 @@ class NormalDist(MutationOperator):
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
+        sigma = self._sigma
+        if self._alpha is not None:
+            sigma = ind.hidden_genes[0]
+            ind.hidden_genes[0] *= np.random.choice(
+                [self._alpha, 1/self._alpha]
+            )
         ind.genes[hits] += np.random.normal(
             self._mu,
-            self._sigma,
+            sigma,
             size=len(hits),
         )
         return (ind, )

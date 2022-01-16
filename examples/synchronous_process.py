@@ -4,15 +4,14 @@ import numpy as np
 import peal
 
 A = np.array([4, 74, 43, 23, 0])
-B = np.array([8, 34, 65, 21, 100])
 
 pool = peal.genetics.IntegerPool(shape=A.size, lower=0, upper=101)
 
 
 @peal.fitness
 def evaluate(individual: peal.Individual) -> float:
-    """Negative MSE comparing individuals genes to A and B."""
-    return -np.mean((A-individual.genes)**2) - np.mean((B-individual.genes)**2)
+    """Negative MSE comparing individuals genes to A."""
+    return -np.mean((A - individual.genes)**2)
 
 
 process = peal.SynchronousProcess(
@@ -20,9 +19,9 @@ process = peal.SynchronousProcess(
     fitness=evaluate,
     init_size=100,
     generations=100,
-    selection=peal.operations.selection.Tournament(size=3),
+    selection=peal.operations.selection.Tournament(size=4),
     mutation=peal.operations.mutation.UniformInt(
-        prob=0.01,
+        prob=0.1,
         lowest=0,
         highest=100,
     ),
