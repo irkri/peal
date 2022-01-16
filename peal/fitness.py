@@ -1,4 +1,5 @@
 from typing import Any, Callable, Optional, Union
+from peal.community import Community
 
 from peal.genetics import GPTerminal
 from peal.population import Individual, Population
@@ -18,20 +19,28 @@ class Fitness:
     def __init__(self, method: Callable[[Individual], float]):
         self._method = method
 
-    def evaluate(self, population: Union[Individual, Population]) -> None:
-        """Evaluates the fitness of all individuals in the given
-        population. This method changes attributes of individuals in
-        ``population`` directly.
+    def evaluate(
+        self,
+        objects: Union[Individual, Population, Community],
+    ) -> None:
+        """Evaluates the fitness of individuals by changing their
+        ``fitness`` attribute directly.
 
         Args:
-            population (Population | Individual): The Population or a
-                single individual to evaluate.
+            objects (Individual | Population | Community): A single
+                individual, a population or a community to evaluate.
         """
-        if isinstance(population, Population):
-            for ind in population:
+        if isinstance(objects, Community):
+            for pop in objects:
+                for ind in pop:
+                    ind.fitness = self._method(ind)
+        if isinstance(objects, Population):
+            for ind in objects:
                 ind.fitness = self._method(ind)
-        elif isinstance(population, Individual):
-            population.fitness = self._method(population)
+        elif isinstance(objects, Individual):
+            objects.fitness = self._method(objects)
+        else:
+            raise TypeError(f"Cannot evaluate object of type {type(objects)}")
 
     def __call__(self, population: Union[Individual, Population]) -> None:
         self.evaluate(population)

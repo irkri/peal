@@ -37,24 +37,27 @@ def evaluate(values: list[float]) -> float:
     return -np.sum(np.abs(values-np.exp(-X**2)))
 
 
-process = peal.SynchronousProcess(
-    breeder=peal.Breeder(pool),
-    fitness=peal.GPFitness(arguments=args, evaluation=evaluate),
+strategy = peal.core.Strategy(
     generations=100,
-    init_size=50,
+    init_individuals=50,
     reproduction=peal.operations.reproduction.Copy(),
-    selection=peal.operations.selection.Tournament(size=3),
     mutation=peal.operations.mutation.GPPoint(
         gene_pool=pool,
         min_height=1,
         max_height=3,
         prob=0.1,
     ),
+    selection=peal.operations.selection.Tournament(size=3),
+)
+
+environment = peal.core.Environment(
+    breeder=peal.Breeder(pool),
+    fitness=peal.GPFitness(arguments=args, evaluation=evaluate),
 )
 
 tracker = peal.callback.BestWorst()
 
-process.start(callbacks=[tracker])
+environment.execute(strategy, callbacks=[tracker])
 
 print(tracker.best[-1])
 

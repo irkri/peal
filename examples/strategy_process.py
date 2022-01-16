@@ -14,17 +14,19 @@ def evaluate(individual: peal.Individual) -> float:
     return -np.mean((A - individual.genes)**2)
 
 
-process = peal.StrategyProcess(
+strategy = peal.core.Strategy.from_string(
+    "1/1,2(2/1,10)^10",
+    population_generations=10,
+)
+
+environment = peal.core.Environment(
     breeder=peal.Breeder(gene_pool=pool),
     fitness=evaluate,
-    generations=10,
-    alpha=1.3,
-    signature="1,2(2/2,10)^10",
 )
 
 tracker = peal.callback.BestWorst()
 statistics = peal.callback.Diversity(pool=pool)
-process.start(callbacks=[tracker, statistics])
+environment.execute(strategy, callbacks=[tracker, statistics])
 
 print(tracker.best)
 

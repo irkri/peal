@@ -1,17 +1,17 @@
 import numpy as np
 
-from peal.operations.operator import PopulationOperator
+from peal.community import Community
+from peal.operations.iteration import StraightIteration
+from peal.operations.operator import Operator
 
-from peal.population import Population
 
-
-class IntegrationOperator(PopulationOperator):
+class IntegrationOperator(Operator[Community]):
     """Abstract class for an integration operation that is responsible
     to merge a given offspring and parent population into one.
     """
 
     def __init__(self):
-        super().__init__(in_size=2, out_size=1)
+        super().__init__(StraightIteration[Community](batch_size=2))
 
 
 class FirstThingsFirst(IntegrationOperator):
@@ -41,9 +41,9 @@ class FirstThingsFirst(IntegrationOperator):
 
     def _process(
         self,
-        populations: tuple[Population, ...],
-    ) -> tuple[Population, ...]:
-        pop1, pop2 = populations
+        container: Community,
+    ) -> Community:
+        pop1, pop2 = container
         req_size = self._size
         if self._size == -1:
             req_size = pop2.size
@@ -54,11 +54,11 @@ class FirstThingsFirst(IntegrationOperator):
                                "requested size")
 
         if pop1.size >= req_size:
-            return (pop1[:req_size], )
+            return Community(pop1[:req_size])
         merged = pop1.deepcopy()
-        merged.populate(pop2[:req_size-pop1.size].deepcopy())
+        merged.integrate(pop2[:req_size-pop1.size].deepcopy())
 
-        return (merged, )
+        return Community(merged)
 
 
 class Crowded(IntegrationOperator):
@@ -76,8 +76,8 @@ class Crowded(IntegrationOperator):
 
     def _process(
         self,
-        populations: tuple[Population, ...],
-    ) -> tuple[Population, ...]:
+        container: Community,
+    ) -> Community:
         """Merges the given offspring and parent population. Each
         offspring will be compared to a number of random individuals
         from the parent population corresponding to the initialized
@@ -92,7 +92,7 @@ class Crowded(IntegrationOperator):
         Returns:
             Population: A population of same size as ``parents``.
         """
-        offspring, parents = populations
+        offspring, parents = container
         merged = parents.copy()
 
         for off in offspring:
@@ -109,4 +109,4 @@ class Crowded(IntegrationOperator):
                     best_distance = dist
                     best = index
             merged[best] = off.copy()
-        return (merged, )
+        return Community(merged)

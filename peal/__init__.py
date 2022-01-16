@@ -1,6 +1,5 @@
 from peal import core
 from peal.core import callback
-from peal.core import SynchronousProcess, StrategyProcess
 
 from peal import operations
 

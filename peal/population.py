@@ -1,4 +1,4 @@
-from typing import Optional, SupportsIndex, Union, overload
+from typing import Iterable, Optional, Sequence, SupportsIndex, Union, overload
 
 import numpy as np
 
@@ -10,19 +10,18 @@ class Population:
     objects.
 
     Args:
-        individuals (Individual): One or more individuals to add.
+        individuals (Individual | Iterable[Individual]): One or more
+            individuals to add.
     """
 
     def __init__(
         self,
-        individuals: Optional[
-            Union[Individual, tuple[Individual, ...], "Population"]
-        ] = None,
+        individuals: Optional[Union[Individual, Iterable[Individual]]] = None,
     ):
         self._iter_id = -1
         self._individuals: list[Individual] = []
         if individuals is not None:
-            self.populate(individuals)
+            self.integrate(individuals)
 
     @property
     def size(self) -> int:
@@ -43,27 +42,23 @@ class Population:
         """
         return np.array([ind.genes for ind in self._individuals])
 
-    def populate(
+    def integrate(
         self,
-        individuals: Union[Individual, tuple[Individual, ...], "Population"],
-    ):
+        individuals: Union[Individual, Iterable[Individual]],
+    ) -> None:
         """Add individuals to the population.
 
         Args:
-            individuals (Individual | tuple | Population): One or
-                a tuple of multiple individuals or a population of
-                individuals to fill this population with.
+            individuals (Individual | Iterable[Individual]): One or
+                multiple individuals to fill this population with.
         """
         if isinstance(individuals, Individual):
             self._individuals.append(individuals)
-        elif isinstance(individuals, tuple):
+        elif isinstance(individuals, Iterable):
             for individual in individuals:
                 if not isinstance(individual, Individual):
                     raise TypeError("Can only append individuals to a "
                                     f"population, got {type(individual)}")
-                self._individuals.append(individual)
-        elif isinstance(individuals, Population):
-            for individual in individuals:
                 self._individuals.append(individual)
         else:
             raise TypeError("Can only append individuals to a population, "
@@ -98,7 +93,8 @@ class Population:
 
     def deepcopy(self) -> "Population":
         """Returns a deep copy of this population that is also copying
-        the individuals."""
+        the individuals.
+        """
         return Population(tuple(indiv.copy() for indiv in self._individuals))
 
     def __iter__(self) -> "Population":
@@ -119,12 +115,18 @@ class Population:
     def __getitem__(self, key: slice) -> "Population":
         ...
 
+    @overload
+    def __getitem__(self, key: Sequence[int]) -> "Population":
+        ...
+
     def __getitem__(
         self,
-        key: Union[SupportsIndex, slice],
+        key: Union[SupportsIndex, slice, Sequence[int]],
     ) -> Union["Population", Individual]:
         if isinstance(key, slice):
-            return Population(tuple(self._individuals[key]))
+            return Population(self._individuals[key])
+        if isinstance(key, Sequence):
+            return Population([self._individuals[i] for i in key])
         return self._individuals.__getitem__(key)
 
     @overload
@@ -132,7 +134,7 @@ class Population:
         ...
 
     @overload
-    def __setitem__(self, key: slice, value: tuple[Individual]) -> None:
+    def __setitem__(self, key: slice, value: Iterable[Individual]) -> None:
         ...
 
     def __setitem__(self, *args) -> None:

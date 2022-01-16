@@ -47,8 +47,8 @@ class BestWorst(Callback):
         self.worst = Population()
 
     def on_generation_end(self, population: Population) -> None:
-        self.best.populate(max(population, key=lambda ind: ind.fitness))
-        self.worst.populate(min(population, key=lambda ind: ind.fitness))
+        self.best.integrate(max(population, key=lambda ind: ind.fitness))
+        self.worst.integrate(min(population, key=lambda ind: ind.fitness))
 
 
 class Diversity(Callback):

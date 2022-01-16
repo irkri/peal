@@ -25,7 +25,7 @@ class Breeder:
         """
         population = Population()
         for _ in range(size):
-            population.populate(Individual(self._gene_pool.random_genome()))
+            population.integrate(Individual(self._gene_pool.random_genome()))
         return population
 
     def __call__(self, size: int = 1) -> Population:

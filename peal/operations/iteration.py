@@ -1,47 +1,43 @@
-from abc import abstractmethod
-from typing import Iterator, Optional
+from abc import ABC, abstractmethod
+from typing import Generic, Iterator, Optional, TypeVar
 
 import numpy as np
 
-from peal.individual import Individual
+from peal.community import Community
 from peal.population import Population
 
+T_iteration = TypeVar("T_iteration", Population, Community)
 
-class IterationType:
+
+class IterationType(ABC, Generic[T_iteration]):
     """Abstract class for an instruction on how to iterate over a
-    population.
+    population or community.
     """
-
-    def __init__(self, out_size: int):
-        self._out_size = out_size
 
     @abstractmethod
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        """Returns an iterator over the given population. The iterator
-        contains individuals or tuples of individuals.
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        """Returns an iterator over the given population or community
+        which yields smaller populations or communities.
         """
 
 
-class SingleIteration(IterationType):
-    """Class that iterates over single individuals in a population the
+class SingleIteration(IterationType[T_iteration]):
+    """Class that iterates over single elements in a container in the
     same order they appear.
     """
 
-    def __init__(self):
-        super().__init__(out_size=1)
-
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        for i in range(population.size):
-            yield (population[i], )
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        for i in range(container.size):
+            yield container[i:i+1]
 
 
-class RandomSingleIteration(IterationType):
+class RandomSingleIteration(IterationType[T_iteration]):
     """Class that iterates over single individuals in a population the
     same order they appear.
 
@@ -51,18 +47,18 @@ class RandomSingleIteration(IterationType):
     """
 
     def __init__(self, probability: float):
-        super().__init__(out_size=1)
         self._probability = probability
 
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        for i in range(population.size):
-            yield (population[i], )
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        for i in range(container.size):
+            if np.random.random_sample() <= self._probability:
+                yield container[i:i+1]
 
 
-class StraightIteration(IterationType):
+class StraightIteration(IterationType[T_iteration]):
     """Class that performes a straight iteration over a population. That
     means that for a given batch size, in each iteration this number of
     individuals is returned. The individuals are located within the
@@ -73,18 +69,17 @@ class StraightIteration(IterationType):
     """
 
     def __init__(self, batch_size: int):
-        super().__init__(out_size=batch_size)
         self._batch_size = batch_size
 
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        for i in range(0, population.size, self._batch_size):
-            yield tuple(population[i:i+self._batch_size])
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        for i in range(0, container.size, self._batch_size):
+            yield container[i:i+self._batch_size]
 
 
-class RandomStraightIteration(IterationType):
+class RandomStraightIteration(IterationType[T_iteration]):
     """Class that performes the same straight iteration as
     :class:`StraightIteration` but returns each batch only with a
     certain probability.
@@ -96,25 +91,24 @@ class RandomStraightIteration(IterationType):
     """
 
     def __init__(self, batch_size: int, probability: float):
-        super().__init__(out_size=batch_size)
         self._batch_size = batch_size
         self._probability = probability
 
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        for i in range(0, population.size, self._batch_size):
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        for i in range(0, container.size, self._batch_size):
             if np.random.random_sample() <= self._probability:
-                yield tuple(population[i:i+self._batch_size])
+                yield container[i:i+self._batch_size]
 
 
-class NRandomBatchesIteration(IterationType):
+class NRandomBatchesIteration(IterationType[T_iteration]):
     """Class that iterates over the given population by yielding a
     specified number of randomly selected batches of a given size.
 
     Args:
-        size (int, optional): Size of each batch returned by the
+        batch_size (int, optional): Size of each batch returned by the
             iterator. Defaults to 1.
         total (int, optional): Number of random batches to return.
             If set to None, the number of returned batches is equal to
@@ -122,19 +116,20 @@ class NRandomBatchesIteration(IterationType):
     """
 
     def __init__(self, batch_size: int = 1, total: Optional[int] = None):
-        super().__init__(out_size=batch_size)
+        if not isinstance(batch_size, int) and batch_size <= 0:
+            raise ValueError("batch_size has to be an integer > 0")
         self._batch_size = batch_size
         self._total = total
 
     def iterate(
         self,
-        population: Population,
-    ) -> Iterator[tuple[Individual, ...]]:
-        total = self._total if self._total is not None else population.size
+        container: T_iteration,
+    ) -> Iterator[T_iteration]:
+        total = self._total if self._total is not None else container.size
         for _ in range(total):
             indices = np.random.choice(
-                population.size,
+                container.size,
                 size=self._batch_size,
-                replace=False
+                replace=False,
             )
-            yield tuple(population[i] for i in indices)
+            yield container[list(indices)]

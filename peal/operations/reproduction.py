@@ -1,24 +1,24 @@
 from typing import Optional
 
 import numpy as np
+from peal.community import Community
 
 from peal.operations.iteration import (
     IterationType,
     SingleIteration,
-    RandomStraightIteration
+    RandomStraightIteration,
+    StraightIteration
 )
-from peal.operations.operator import Operator, PopulationOperator
-from peal.individual import Individual
+from peal.operations.operator import Operator
 from peal.population import Population
 
 
-class ReproductionOperator(Operator):
+class PopulationReproductionOperator(Operator[Population]):
     """Operator for the reproduction of individuals in a popoulation."""
 
     def __init__(
         self,
-        in_size: int,
-        out_size: int,
+        in_size: int = 1,
         probability: float = 1.0,
         iter_type: Optional[IterationType] = None,
     ):
@@ -27,27 +27,23 @@ class ReproductionOperator(Operator):
                 batch_size=in_size,
                 probability=probability
             )
-        super().__init__(
-            in_size=in_size,
-            out_size=out_size,
-            iter_type=iter_type,
-        )
+        super().__init__(iter_type=iter_type)
 
 
-class Copy(ReproductionOperator):
+class Copy(PopulationReproductionOperator):
     """Simple reproduction operator that copies a single individual."""
 
     def __init__(self):
-        super().__init__(in_size=1, out_size=1, iter_type=SingleIteration())
+        super().__init__(iter_type=SingleIteration[Population]())
 
     def _process(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        return (individuals[0].copy(), )
+        container: Population,
+    ) -> Population:
+        return container.deepcopy()
 
 
-class Crossover(ReproductionOperator):
+class Crossover(PopulationReproductionOperator):
     """Crossover reproduction operator.
 
     Args:
@@ -58,14 +54,14 @@ class Crossover(ReproductionOperator):
     """
 
     def __init__(self, npoints: int = 2, probability: float = 0.5):
-        super().__init__(in_size=2, out_size=2, probability=probability)
+        super().__init__(in_size=2, probability=probability)
         self._npoints = npoints
 
     def _process(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        ind1, ind2 = individuals
+        container: Population,
+    ) -> Population:
+        ind1, ind2 = container
         points = np.insert(
             np.sort(
                 np.random.randint(
@@ -86,10 +82,10 @@ class Crossover(ReproductionOperator):
             off2.genes[points[i]:points[i+1]] = ind1.genes[
                 points[i]:points[i+1]
             ]
-        return off1, off2
+        return Population((off1, off2))
 
 
-class MultiMix(ReproductionOperator):
+class MultiMix(PopulationReproductionOperator):
     """Reproduction operator that mixes the genes of multiple
     individuals to create a new individual. Each individual gives the
     same proportion of their genes.
@@ -105,45 +101,44 @@ class MultiMix(ReproductionOperator):
     """
 
     def __init__(self, in_size: int = 2, probability: float = 0.5):
-        super().__init__(in_size=in_size, out_size=1, probability=probability)
+        super().__init__(in_size=in_size, probability=probability)
 
     def _process(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        if self._in_size == 1:
-            return (individuals[0].copy(), )
+        container: Population,
+    ) -> Population:
+        if container.size == 1:
+            return container.deepcopy()
 
         parts = [
-            individuals[0].genes.shape[0] // self._in_size
-            for _ in range(self._in_size)
+            container[0].genes.shape[0] // container.size
+            for _ in range(container.size)
         ]
-        missing = individuals[0].genes.shape[0] % self._in_size
+        missing = container[0].genes.shape[0] % container.size
         for i in range(missing):
             parts[i] += 1
         parts.insert(0, 0)
 
-        genes = np.zeros_like(individuals[0].genes)
-        shuffled_indices = np.arange(individuals[0].genes.shape[0])
+        genes = np.zeros_like(container[0].genes)
+        shuffled_indices = np.arange(container[0].genes.shape[0])
         np.random.shuffle(shuffled_indices)
         for i in range(len(parts)-1):
             genes[shuffled_indices[parts[i]:parts[i]+parts[i+1]]] = (
-                individuals[i].genes[
+                container[i].genes[
                     shuffled_indices[parts[i]:parts[i]+parts[i+1]]
                 ]
             )
-        new_ind = individuals[0].copy()
+        new_ind = container[0].copy()
         new_ind.genes = genes
-        return (new_ind, )
+        return Population(new_ind)
 
 
-class EquiMix(PopulationOperator):
+class P_EquiMix(Operator[Community]):
     """Operator that mixes a number of populations to create a new ones.
     The number of individuals taken from each input population is the
     same. All populations are therefore expected to have the same size.
 
     Args:
-        in_size (int): Number of input populations.
         out_size (int): Number of populations to create by mixing the
             input populations.
         group_size (int): Number of (randomly chosen) populations to
@@ -152,22 +147,23 @@ class EquiMix(PopulationOperator):
     """
 
     def __init__(self, in_size: int, out_size: int, group_size: int):
-        super().__init__(in_size=in_size, out_size=out_size)
+        super().__init__(StraightIteration[Community](batch_size=in_size))
         self._group_size = group_size
+        self._out_size = out_size
 
     def _process(
         self,
-        populations: tuple[Population, ...],
-    ) -> tuple[Population, ...]:
-        offspring_populations: list[Population] = []
+        container: Community,
+    ) -> Community:
+        offspring_populations = Community()
         population_parent_indices = [
             np.random.randint(
                 0,
-                self._in_size,
+                container.size,
                 size=self._group_size,
             ) for _ in range(self._out_size)
         ]
-        n_indivs = populations[0].size
+        n_indivs = container[0].size
         for indices in population_parent_indices:
             new_population = Population()
             parts = [n_indivs // self._group_size
@@ -176,6 +172,19 @@ class EquiMix(PopulationOperator):
                 parts[i % self._group_size] += 1
             for i in indices:
                 for j in parts:
-                    new_population.populate(populations[i][0:j].deepcopy())
-            offspring_populations.append(new_population)
-        return tuple(offspring_populations)
+                    new_population.integrate(container[i][0:j].deepcopy())
+            offspring_populations.integrate(new_population)
+        return offspring_populations
+
+
+class P_Copy(Operator[Community]):
+    """Operator that returns a deep copy of the input population."""
+
+    def __init__(self):
+        super().__init__(SingleIteration[Community]())
+
+    def _process(
+        self,
+        container: Community,
+    ) -> Community:
+        return container.deepcopy()
