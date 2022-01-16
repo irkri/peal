@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, get_args
+from typing import Generic, TypeVar
 
 from peal.community import Community
 from peal.operations.iteration import IterationType
@@ -9,13 +9,21 @@ T_operation = TypeVar("T_operation", Population, Community)
 
 
 class Operator(ABC, Generic[T_operation]):
-    """Base class for evolutionary operators in peal.
+    """Base class for evolutionary operators in peal. An operator is
+    normally called on a :class:`~peal.population.Population` or a
+    :class:`~peal.community.Community`. Smaller parts of such a
+    container are selected and feed forward to the protected method
+    :meth:`Operator._process` that has to be overwritten by inheriting
+    classes. The property ``iter_type`` of an operator is used to
+    iterate over the input population or community, return correspoding
+    smaller populations or communities, which then are given to the
+    metioned protected method. All results will be concatenated and
+    returned by the public :meth:`Operator.process` method.
+
+    New operators should always inherit from either
+    :class:`PopulationOperator` or :class:`CommunityOperator`.
 
     Args:
-        in_size (int): The number of individuals to input in the
-            operator.
-        out_size (int): The number of individuals returned by
-            the operator.
         iter_type (IterationType, optional): The iteration type of the
             iterator. Defaults to
             :class:`~peal.operations.iteration.SingleIteration`.
@@ -43,28 +51,12 @@ class Operator(ABC, Generic[T_operation]):
             raise TypeError(f"Expected IterationType, got {type(iter_type)}")
         self._iter_type = iter_type
 
+    @abstractmethod
     def process(
         self,
         container: T_operation,
     ) -> T_operation:
-        """Processes the given population or community with the
-        operator.
-
-        Args:
-            container (Population | Community): A tuple of
-                one or multiple populations to process. Only one
-                operation is performed.
-
-        Returns:
-            Processed population or community.
-        """
-        iteration = self._iter_type.iterate(container)
-        new_container: T_operation = (
-            get_args(self.__orig_bases__[0])[0]()  # type: ignore
-        )
-        for batch in iteration:
-            new_container.integrate(self._process(batch))
-        return new_container
+        """Processes and returns the given population or community."""
 
     @abstractmethod
     def _process(
@@ -72,3 +64,39 @@ class Operator(ABC, Generic[T_operation]):
         container: T_operation,
     ) -> T_operation:
         ...
+
+
+class PopulationOperator(Operator[Population]):
+    """Base class for evolutionary operators that operate on groups of
+    individuals in a population.
+
+    For more information, check the base class :class:`Operator`.
+    """
+
+    def process(
+        self,
+        container: Population,
+    ) -> Population:
+        iteration = self._iter_type.iterate(container)
+        new_container = Population()
+        for batch in iteration:
+            new_container.integrate(self._process(batch))
+        return new_container
+
+
+class CommunityOperator(Operator[Community]):
+    """Base class for evolutionary operators that operate on groups of
+    populations in a community.
+
+    For more information, check the base class :class:`Operator`.
+    """
+
+    def process(
+        self,
+        container: Community,
+    ) -> Community:
+        iteration = self._iter_type.iterate(container)
+        new_container = Community()
+        for batch in iteration:
+            new_container.integrate(self._process(batch))
+        return new_container

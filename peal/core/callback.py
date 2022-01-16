@@ -97,8 +97,7 @@ class Diversity(Callback):
                     / population.size
                 )**2
         else:
-            div = np.zeros((population[0].genes.shape[0],))
-            div += np.std(population.genes, axis=0)
+            div = np.std(population.genes, axis=0)
         self.gene_diversity = np.vstack([
             self.gene_diversity,
             div

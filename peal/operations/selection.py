@@ -5,11 +5,11 @@ from peal.operations.iteration import (
     NRandomBatchesIteration,
     StraightIteration,
 )
-from peal.operations.operator import Operator
+from peal.operations.operator import PopulationOperator, CommunityOperator
 from peal.population import Population
 
 
-class Tournament(Operator[Population]):
+class Tournament(PopulationOperator):
     """A selection operator that simulates a tournament selection of
     variable size for multiple individuals in a population.
 
@@ -30,7 +30,7 @@ class Tournament(Operator[Population]):
         return Population(max(container, key=lambda x: x.fitness).copy())
 
 
-class Best(Operator[Population]):
+class Best(PopulationOperator):
     """A selection operator that returns the top ``out_size``
     individuals of a population.
     """
@@ -54,7 +54,7 @@ class Best(Operator[Population]):
         )[:self._out_size]])
 
 
-class P_BestMean(Operator[Community]):
+class CBestMean(CommunityOperator):
     """Operator that selects populations out of a community of
     populations based on their highest mean fitness.
 

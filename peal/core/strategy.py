@@ -6,8 +6,8 @@ from peal.community import Community
 from peal.operations.iteration import NRandomBatchesIteration
 from peal.operations.mutation import NormalDist
 from peal.operations.operator import Operator
-from peal.operations.reproduction import P_EquiMix, MultiMix, P_Copy
-from peal.operations.selection import P_BestMean, Best
+from peal.operations.reproduction import CEquiMix, MultiMix, CCopy
+from peal.operations.selection import CBestMean, Best
 from peal.operations.integration import IntegrationOperator, FirstThingsFirst
 from peal.population import Population
 
@@ -35,10 +35,10 @@ class Strategy:
     select_parent_populations: bool = True
 
     population_selection: Operator[Community] = field(
-        default_factory=P_Copy,
+        default_factory=CCopy,
     )
     population_reproduction: Operator[Community] = field(
-        default_factory=P_Copy,
+        default_factory=CCopy,
     )
 
     @staticmethod
@@ -69,7 +69,7 @@ class Strategy:
             ),
             out_size=ind_mu,
         )
-        pop_selection = P_BestMean(
+        pop_selection = CBestMean(
             in_size=pop_lambda+pop_mu if pop_parent_selection else pop_lambda,
             out_size=pop_mu,
         )
@@ -78,7 +78,7 @@ class Strategy:
             batch_size=ind_rho,
             total=ind_lambda,
         )
-        pop_reproduction = P_EquiMix(
+        pop_reproduction = CEquiMix(
             in_size=pop_mu,
             out_size=pop_lambda,
             group_size=pop_rho,

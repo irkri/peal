@@ -2,10 +2,10 @@ import numpy as np
 
 from peal.community import Community
 from peal.operations.iteration import StraightIteration
-from peal.operations.operator import Operator
+from peal.operations.operator import CommunityOperator
 
 
-class IntegrationOperator(Operator[Community]):
+class IntegrationOperator(CommunityOperator):
     """Abstract class for an integration operation that is responsible
     to merge a given offspring and parent population into one.
     """

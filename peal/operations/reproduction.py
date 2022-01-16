@@ -9,11 +9,11 @@ from peal.operations.iteration import (
     RandomStraightIteration,
     StraightIteration
 )
-from peal.operations.operator import Operator
+from peal.operations.operator import CommunityOperator, PopulationOperator
 from peal.population import Population
 
 
-class PopulationReproductionOperator(Operator[Population]):
+class PopulationReproductionOperator(PopulationOperator):
     """Operator for the reproduction of individuals in a popoulation."""
 
     def __init__(
@@ -133,7 +133,7 @@ class MultiMix(PopulationReproductionOperator):
         return Population(new_ind)
 
 
-class P_EquiMix(Operator[Community]):
+class CEquiMix(CommunityOperator):
     """Operator that mixes a number of populations to create a new ones.
     The number of individuals taken from each input population is the
     same. All populations are therefore expected to have the same size.
@@ -177,7 +177,7 @@ class P_EquiMix(Operator[Community]):
         return offspring_populations
 
 
-class P_Copy(Operator[Community]):
+class CCopy(CommunityOperator):
     """Operator that returns a deep copy of the input population."""
 
     def __init__(self):

@@ -3,11 +3,11 @@ import numpy as np
 
 from peal.genetics import GPPool, GPTerminal
 from peal.operations.iteration import SingleIteration
-from peal.operations.operator import Operator
+from peal.operations.operator import PopulationOperator
 from peal.population import Population
 
 
-class PopulationMutationOperator(Operator[Population]):
+class PopulationMutationOperator(PopulationOperator):
     """Operator for the mutation of individuals in a popoulation."""
 
     def __init__(self):
