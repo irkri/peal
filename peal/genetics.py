@@ -253,7 +253,7 @@ class GPPool(GenePool):
                 names to their corresponding type.
         """
         for name, type_ in arguments.items():
-            if type_ not in self._terminal.keys():
+            if type_ not in self._terminal:
                 self._terminal[type_] = []
             self._terminal[type_].append(GPTerminal(
                 rtype=type_,

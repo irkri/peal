@@ -9,12 +9,30 @@ from peal.fitness import Fitness
 
 @dataclass
 class Environment:
+    """An environment for the evolution of individuals and populations.
+    This class is responsible for describing the creation and evaluation
+    of single individuals. With this information, it executes a given
+    evolutionary strategy.
+
+    Args:
+        breeder (Breeder): The breeder to use for individual
+            initialization.
+        fitness (Fitness): The fitness to use for evaluation of#
+            individuals.
+    """
 
     breeder: Breeder
     fitness: Fitness
 
     def execute(self, strategy: Strategy, callbacks: list[Callback]) -> None:
-        """Executes the given evolutionary strategy."""
+        """Executes the given evolutionary strategy.
+
+        Args:
+            strategy (Strategy): The strategy to execute.
+            callbacks (list[Callback]): A number of callbacks that are
+                used to track information of the evolution following the
+                given strategy.
+        """
         callbacks = [] if callbacks is None else callbacks
 
         parent_populations = Community()

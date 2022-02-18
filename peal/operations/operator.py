@@ -24,9 +24,8 @@ class Operator(ABC, Generic[T_operation]):
     :class:`PopulationOperator` or :class:`CommunityOperator`.
 
     Args:
-        iter_type (IterationType, optional): The iteration type of the
-            iterator. Defaults to
-            :class:`~peal.operations.iteration.SingleIteration`.
+        iter_type (IterationType): The iteration type of the
+            iterator.
     """
 
     def __init__(
