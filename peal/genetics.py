@@ -81,15 +81,15 @@ class IntegerPool(GenePool):
         upper: int,
     ):
         super().__init__(typing=(GeneType.ORDINAL, GeneType.CONST_SIZE))
-        self._lower = lower
-        self._upper = upper
+        self.lower = lower
+        self.upper = upper
         self._shape = shape
         self._size = upper - lower + 1
 
     def random_genome(self, **kwargs) -> np.ndarray:
         return np.random.randint(
-            self._lower,
-            self._upper + 1,
+            self.lower,
+            self.upper + 1,
             size=self._shape
         )
 
@@ -111,15 +111,15 @@ class NumberPool(GenePool):
         upper: Union[int, float],
     ):
         super().__init__(typing=(GeneType.METRIC, GeneType.CONST_SIZE))
-        self._lower = lower
-        self._upper = upper
+        self.lower = lower
+        self.upper = upper
         self._shape = shape
 
     def random_genome(self, **kwargs) -> np.ndarray:
         return (
-            (self._upper-self._lower)
+            (self.upper - self.lower)
             * np.random.random_sample(size=self._shape)
-            + self._lower
+            + self.lower
         )
 
 

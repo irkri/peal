@@ -78,6 +78,46 @@ class UniformInt(PopulationMutationOperator):
         return Population(ind)
 
 
+class UniformFloat(PopulationMutationOperator):
+    """Mutation that mutates a gene to a random float in a given range
+    with certain probability.
+
+    Args:
+        prob (float, optional): The probability of each gene to mutate.
+            Defaults to 0.1.
+        lowest (float, optional): The lowest float the mutation can turn
+            a gene to. Defaults to -1.
+        highest (float, optional): The highest float the mutation can
+            turn a gene to. Defaults to 1.
+    """
+
+    def __init__(
+        self,
+        prob: float = 0.1,
+        lowest: float = -1.0,
+        highest: float = 1.0,
+    ):
+        super().__init__()
+        self._prob = prob
+        self._lowest = lowest
+        self._highest = highest
+
+    def _process(
+        self,
+        container: Population,
+    ) -> Population:
+        ind = container[0].copy()
+        hits = np.where(
+            np.random.random_sample(len(ind.genes)) <= self._prob
+        )[0]
+        ind.genes[hits] = (
+            (self._highest-self._lowest)
+            * np.random.random_sample(size=len(hits))
+            + self._lowest
+        )
+        return Population(ind)
+
+
 class NormalDist(PopulationMutationOperator):
     """Mutation operator that changes genes for an individual with a
     probability by __adding__ a randomly distributed real value.

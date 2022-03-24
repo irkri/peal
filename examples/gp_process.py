@@ -27,6 +27,7 @@ def cos(x: float) -> float:
 
 
 pool.add_arguments({"x": float})
+pool.add_terminals([0.5, 1, -1, -0.5])
 
 
 X = np.linspace(-5, 5, 100)
@@ -34,7 +35,7 @@ args = [{"x": X[i]} for i in range(len(X))]
 
 
 def evaluate(values: list[float]) -> float:
-    return -np.sum(np.abs(values-np.exp(-X**2)))
+    return - np.mean((values-np.exp(-X**2))**2)
 
 
 strategy = peal.core.Strategy(
