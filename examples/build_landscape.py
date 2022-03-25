@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import peal
-
+from visual_callbacks import ExploreLandscape, VisualTracker
 
 pool = peal.genetics.NumberPool(shape=2, lower=-5, upper=5)
 
@@ -26,11 +26,11 @@ environment = peal.core.Environment(
 fig = plt.figure(figsize=(12, 5))
 ax1 = fig.add_subplot(1, 2, 1, projection="3d")
 ax2 = fig.add_subplot(1, 2, 2)
-explorer = peal.callback.ExploreLandscape(
+explorer = ExploreLandscape(
     gene_pool=pool,
     figax=(fig, ax1),
 )
-tracker = peal.callback.VisualTracker(
+tracker = VisualTracker(
     kind="max",
     figax=(fig, ax2),
 )

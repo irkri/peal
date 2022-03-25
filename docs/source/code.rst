@@ -1,5 +1,5 @@
-Choosing a Process
-==================
+Starting an Evolutionary Algorithm
+==================================
 .. toctree::
    :maxdepth: 4
    :glob:

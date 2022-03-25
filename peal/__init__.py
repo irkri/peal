@@ -1,3 +1,7 @@
+import importlib.metadata
+
+__version__ = importlib.metadata.version("peal")
+
 from peal import core
 from peal.core import callback
 

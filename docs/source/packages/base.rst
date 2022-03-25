@@ -13,10 +13,6 @@ Breeding new Individuals
    :members:
    :undoc-members:
    :show-inheritance:
-.. automodule:: peal.breeding
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 Forming a Population
 ^^^^^^^^^^^^^^^^^^^^
