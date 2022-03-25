@@ -22,7 +22,7 @@ increases readability and allows easier code management.
 
 PEAL can be installed on your local machine by using the file [setup.py](setup.py).
 
-  >>> python setup.py install
+    >>> python setup.py install
 
 However, it is recommended to use virtual environments together with ``poetry`` and utilize the
 file [pyproject.toml](pyproject.toml).
@@ -35,9 +35,9 @@ Please install the following packages using `pip` or `conda` before executing th
 - sphinx
 - sphinx_rtd_theme
 
-You can also use ``poetry`` for this by executing
+You can also use ``poetry`` for this by executing:
 
-  >>> poetry install -E docs
+    >>> poetry install -E docs
 
 This should create a local directory `docs/build`. Open the file `docs/build/index.html` in a
 browser to access the documentation.
