@@ -1,7 +1,7 @@
 Base class for all Operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.operator
+.. automodule:: peal.operators.operator
    :members:
    :undoc-members:
    :show-inheritance:
@@ -9,7 +9,7 @@ Base class for all Operators
 Iterating over Populations in Operators
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.iteration
+.. automodule:: peal.operators.iteration
    :members:
    :undoc-members:
    :show-inheritance:
@@ -17,7 +17,7 @@ Iterating over Populations in Operators
 Reproduction Operators
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.reproduction
+.. automodule:: peal.operators.reproduction
    :members:
    :undoc-members:
    :show-inheritance:
@@ -25,7 +25,7 @@ Reproduction Operators
 Mutation Operators
 ^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.mutation
+.. automodule:: peal.operators.mutation
    :members:
    :undoc-members:
    :show-inheritance:
@@ -33,7 +33,7 @@ Mutation Operators
 Selection Operators
 ^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.selection
+.. automodule:: peal.operators.selection
    :members:
    :undoc-members:
    :show-inheritance:
@@ -41,7 +41,15 @@ Selection Operators
 Integration Operators
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. automodule:: peal.operations.integration
+.. automodule:: peal.operators.integration
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Clash Operators
+^^^^^^^^^^^^^^^
+
+.. automodule:: peal.operators.clash
    :members:
    :undoc-members:
    :show-inheritance:

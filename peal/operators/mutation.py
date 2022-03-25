@@ -1,29 +1,17 @@
+"""Module that defines operators that mutate individuals or populations.
+"""
+
+from typing import Optional
 import numpy as np
 
 from peal.genetics import GPPool, GPTerminal
-from peal.individual import Individual
-from peal.operations.iteration import SingleIteration
-from peal.operations.operator import Operator
+from peal.operators.operator import Operator
+from peal.population import Population
 
 
-class MutationOperator(Operator):
-    """Operator for the mutation of individuals in a popoulation."""
-
-    def __init__(
-        self,
-        in_size: int,
-        out_size: int,
-    ):
-        super().__init__(
-            in_size=in_size,
-            out_size=out_size,
-            iter_type=SingleIteration(),
-        )
-
-
-class BitFlip(MutationOperator):
+class BitFlip(Operator):
     """Mutation that applies the python ``not`` operator to genes in
-    a individual.
+    an individual.
 
     Args:
         prob (float, optional): The probability of each gene to mutate.
@@ -31,21 +19,21 @@ class BitFlip(MutationOperator):
     """
 
     def __init__(self, prob: float = 0.1):
-        super().__init__(in_size=1, out_size=1)
+        super().__init__()
         self._prob = prob
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        ind = individuals[0].copy()
+        container: Population,
+    ) -> Population:
+        ind = container[0].copy()
         for i, gene in enumerate(ind.genes):
             if np.random.random_sample() <= self._prob:
                 ind.genes[i] = not gene
-        return (ind, )
+        return Population(ind)
 
 
-class UniformInt(MutationOperator):
+class UniformInt(Operator):
     """Mutation that selects a random uniformly distributed integer from
     a given range with a certain probability for a single gene.
 
@@ -64,16 +52,16 @@ class UniformInt(MutationOperator):
         lowest: int = -1,
         highest: int = 1,
     ):
-        super().__init__(in_size=1, out_size=1)
+        super().__init__()
         self._prob = prob
         self._lowest = lowest
         self._highest = highest
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        ind = individuals[0].copy()
+        container: Population,
+    ) -> Population:
+        ind = container[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
@@ -82,10 +70,50 @@ class UniformInt(MutationOperator):
             self._highest+1,
             size=len(hits),
         )
-        return (ind, )
+        return Population(ind)
 
 
-class NormalDist(MutationOperator):
+class UniformFloat(Operator):
+    """Mutation that mutates a gene to a random float in a given range
+    with certain probability.
+
+    Args:
+        prob (float, optional): The probability of each gene to mutate.
+            Defaults to 0.1.
+        lowest (float, optional): The lowest float the mutation can turn
+            a gene to. Defaults to -1.
+        highest (float, optional): The highest float the mutation can
+            turn a gene to. Defaults to 1.
+    """
+
+    def __init__(
+        self,
+        prob: float = 0.1,
+        lowest: float = -1.0,
+        highest: float = 1.0,
+    ):
+        super().__init__()
+        self._prob = prob
+        self._lowest = lowest
+        self._highest = highest
+
+    def _process_population(
+        self,
+        container: Population,
+    ) -> Population:
+        ind = container[0].copy()
+        hits = np.where(
+            np.random.random_sample(len(ind.genes)) <= self._prob
+        )[0]
+        ind.genes[hits] = (
+            (self._highest-self._lowest)
+            * np.random.random_sample(size=len(hits))
+            + self._lowest
+        )
+        return Population(ind)
+
+
+class NormalDist(Operator):
     """Mutation operator that changes genes for an individual with a
     probability by __adding__ a randomly distributed real value.
 
@@ -96,6 +124,13 @@ class NormalDist(MutationOperator):
             values are drawn from. Defaults to 0.
         sigma (float, optional): The standard deviation of the normal
             distribution the values are drawn from. Defaults to 1.
+        alpha (float, optional): If a float value is given, the
+            mutation step size (i.e. the standard deviation of a
+            normal distribution) will be multiplied by this float or its
+            inverse (randomly chosen) each time an individual is passed
+            through this operator. Each individual then has its own
+            mutation step size saved in their object representation as
+            hidden parameters. Defaults to None.
     """
 
     def __init__(
@@ -103,29 +138,37 @@ class NormalDist(MutationOperator):
         prob: float = 0.1,
         mu: float = 0.0,
         sigma: float = 1.0,
+        alpha: Optional[float] = None,
     ):
-        super().__init__(1, 1)
+        super().__init__()
         self._prob = prob
         self._mu = mu
         self._sigma = sigma
+        self._alpha = alpha
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        ind = individuals[0].copy()
+        container: Population,
+    ) -> Population:
+        ind = container[0].copy()
         hits = np.where(
             np.random.random_sample(len(ind.genes)) <= self._prob
         )[0]
+        sigma = self._sigma
+        if self._alpha is not None:
+            sigma = ind.hidden_genes[0]
+            ind.hidden_genes[0] *= np.random.choice(
+                [self._alpha, 1/self._alpha]
+            )
         ind.genes[hits] += np.random.normal(
             self._mu,
-            self._sigma,
+            sigma,
             size=len(hits),
         )
-        return (ind, )
+        return Population(ind)
 
 
-class GPPoint(MutationOperator):
+class GPPoint(Operator):
     """Point mutation used in a genetic programming algorithm.
     This mutation replaces a node in a genome tree by a subtree.
 
@@ -145,22 +188,22 @@ class GPPoint(MutationOperator):
         gene_pool: GPPool,
         min_height: int = 1,
         max_height: int = 1,
-        prob: float = 0.1
+        prob: float = 0.1,
     ):
-        super().__init__(in_size=1, out_size=1)
+        super().__init__()
         self._pool = gene_pool
         self._min_height = min_height
         self._max_height = max_height
         self._prob = prob
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
+        container: Population,
+    ) -> Population:
         if np.random.random_sample() >= self._prob:
-            return (individuals[0].copy(), )
+            return container.deepcopy()
 
-        ind = individuals[0].copy()
+        ind = container[0].copy()
         index = np.random.randint(0, len(ind.genes))
         # search for subtree slice starting at index in the tree
         right = index + 1
@@ -181,4 +224,4 @@ class GPPoint(MutationOperator):
             ),
             ind.genes[right:],
         ))
-        return (ind, )
+        return Population(ind)

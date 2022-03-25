@@ -1,52 +1,38 @@
-from typing import Optional
+"""Module that provides operators that reproduce individuals."""
 
 import numpy as np
 
-from peal.operations.iteration import (
-    IterationType,
+from peal.community import Community
+from peal.operators.iteration import (
     SingleIteration,
-    RandomStraightIteration
+    RandomStraightIteration,
 )
-from peal.operations.operator import Operator
-from peal.population import Individual
+from peal.operators.operator import Operator
+from peal.population import Population
 
 
-class ReproductionOperator(Operator):
-    """Operator for the reproduction of individuals in a popoulation."""
-
-    def __init__(
-        self,
-        in_size: int,
-        out_size: int,
-        probability: float = 1.0,
-        iter_type: Optional[IterationType] = None,
-    ):
-        if iter_type is None:
-            iter_type = RandomStraightIteration(
-                batch_size=in_size,
-                probability=probability
-            )
-        super().__init__(
-            in_size=in_size,
-            out_size=out_size,
-            iter_type=iter_type,
-        )
-
-
-class Copy(ReproductionOperator):
-    """Simple reproduction operator that copies a single individual."""
+class Copy(Operator):
+    """Simple reproduction operator that copies single individuals or
+    populations.
+    """
 
     def __init__(self):
-        super().__init__(in_size=1, out_size=1, iter_type=SingleIteration())
+        super().__init__(iter_type=SingleIteration())
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        return (individuals[0].copy(), )
+        container: Population,
+    ) -> Population:
+        return container.deepcopy()
+
+    def _process_community(
+        self,
+        container: Community,
+    ) -> Community:
+        return container.deepcopy()
 
 
-class Crossover(ReproductionOperator):
+class Crossover(Operator):
     """Crossover reproduction operator.
 
     Args:
@@ -57,14 +43,16 @@ class Crossover(ReproductionOperator):
     """
 
     def __init__(self, npoints: int = 2, probability: float = 0.5):
-        super().__init__(in_size=2, out_size=2, probability=probability)
+        super().__init__(
+            RandomStraightIteration(batch_size=2, probability=probability)
+        )
         self._npoints = npoints
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        ind1, ind2 = individuals
+        container: Population,
+    ) -> Population:
+        ind1, ind2 = container
         points = np.insert(
             np.sort(
                 np.random.randint(
@@ -85,10 +73,10 @@ class Crossover(ReproductionOperator):
             off2.genes[points[i]:points[i+1]] = ind1.genes[
                 points[i]:points[i+1]
             ]
-        return off1, off2
+        return Population((off1, off2))
 
 
-class MultiMix(ReproductionOperator):
+class DiscreteRecombination(Operator):
     """Reproduction operator that mixes the genes of multiple
     individuals to create a new individual. Each individual gives the
     same proportion of their genes.
@@ -104,32 +92,38 @@ class MultiMix(ReproductionOperator):
     """
 
     def __init__(self, in_size: int = 2, probability: float = 0.5):
-        super().__init__(in_size=in_size, out_size=1, probability=probability)
+        super().__init__(
+            RandomStraightIteration(
+                batch_size=in_size,
+                probability=probability,
+            ),
+        )
 
-    def _process(
+    def _process_population(
         self,
-        individuals: tuple[Individual, ...],
-    ) -> tuple[Individual, ...]:
-        if self._in_size == 1:
-            return (individuals[0].copy(), )
+        container: Population,
+    ) -> Population:
+        if container.size == 1:
+            return container.deepcopy()
 
         parts = [
-            individuals[0].genes.shape[0] // self._in_size
-            for _ in range(self._in_size)
+            container[0].genes.shape[0] // container.size
+            for _ in range(container.size)
         ]
-        missing = individuals[0].genes.shape[0] % self._in_size
+        missing = container[0].genes.shape[0] % container.size
         for i in range(missing):
             parts[i] += 1
         parts.insert(0, 0)
 
-        genes = np.zeros_like(individuals[0].genes)
-        shuffled_indices = np.arange(individuals[0].genes.shape[0])
+        genes = np.zeros_like(container[0].genes)
+        shuffled_indices = np.arange(container[0].genes.shape[0])
         np.random.shuffle(shuffled_indices)
         for i in range(len(parts)-1):
             genes[shuffled_indices[parts[i]:parts[i]+parts[i+1]]] = (
-                individuals[i].genes[
+                container[i].genes[
                     shuffled_indices[parts[i]:parts[i]+parts[i+1]]
                 ]
             )
-        new_ind = Individual(genes)
-        return (new_ind, )
+        new_ind = container[0].copy()
+        new_ind.genes = genes
+        return Population(new_ind)

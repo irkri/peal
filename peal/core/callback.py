@@ -38,7 +38,7 @@ class BestWorst(Callback):
             individuals from each generation.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.best: Population = Population()
         self.worst: Population = Population()
 
@@ -47,8 +47,8 @@ class BestWorst(Callback):
         self.worst = Population()
 
     def on_generation_end(self, population: Population) -> None:
-        self.best.populate(max(population, key=lambda ind: ind.fitness))
-        self.worst.populate(min(population, key=lambda ind: ind.fitness))
+        self.best.integrate(max(population, key=lambda ind: ind.fitness))
+        self.worst.integrate(min(population, key=lambda ind: ind.fitness))
 
 
 class Diversity(Callback):
@@ -59,7 +59,7 @@ class Diversity(Callback):
             process to generate individuals.
     """
 
-    def __init__(self, pool: GenePool):
+    def __init__(self, pool: GenePool) -> None:
         self._pool = pool
         if GeneType.CONST_SIZE not in self._pool.typing:
             raise ValueError("Diversity not available for genomes of "
@@ -97,8 +97,7 @@ class Diversity(Callback):
                     / population.size
                 )**2
         else:
-            div = np.zeros((population[0].genes.shape[0],))
-            div += np.std(population.genes, axis=0)
+            div = np.std(population.genes, axis=0)
         self.gene_diversity = np.vstack([
             self.gene_diversity,
             div

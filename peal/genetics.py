@@ -81,15 +81,15 @@ class IntegerPool(GenePool):
         upper: int,
     ):
         super().__init__(typing=(GeneType.ORDINAL, GeneType.CONST_SIZE))
-        self._lower = lower
-        self._upper = upper
+        self.lower = lower
+        self.upper = upper
         self._shape = shape
         self._size = upper - lower + 1
 
     def random_genome(self, **kwargs) -> np.ndarray:
         return np.random.randint(
-            self._lower,
-            self._upper + 1,
+            self.lower,
+            self.upper + 1,
             size=self._shape
         )
 
@@ -111,15 +111,15 @@ class NumberPool(GenePool):
         upper: Union[int, float],
     ):
         super().__init__(typing=(GeneType.METRIC, GeneType.CONST_SIZE))
-        self._lower = lower
-        self._upper = upper
+        self.lower = lower
+        self.upper = upper
         self._shape = shape
 
     def random_genome(self, **kwargs) -> np.ndarray:
         return (
-            (self._upper-self._lower)
+            (self.upper - self.lower)
             * np.random.random_sample(size=self._shape)
-            + self._lower
+            + self.lower
         )
 
 
@@ -175,8 +175,8 @@ class GPPool(GenePool):
         max_depth: int,
     ):
         super().__init__(typing=(GeneType.NOMINAL, ))
-        self._elementary: dict[type, list[GPCallable]] = dict()
-        self._terminal: dict[type, list[GPTerminal]] = dict()
+        self._elementary: dict[type, list[GPCallable]] = {}
+        self._terminal: dict[type, list[GPTerminal]] = {}
         self._min_depth = min_depth
         self._max_depth = max_depth
 
@@ -253,7 +253,7 @@ class GPPool(GenePool):
                 names to their corresponding type.
         """
         for name, type_ in arguments.items():
-            if type_ not in self._terminal.keys():
+            if type_ not in self._terminal:
                 self._terminal[type_] = []
             self._terminal[type_].append(GPTerminal(
                 rtype=type_,
