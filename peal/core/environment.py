@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 
-from peal.breeding import Breeder
 from peal.community import Community
 from peal.core.callback import Callback
 from peal.core.strategy import Strategy
 from peal.fitness import Fitness
+from peal.genetics import GenePool
+from peal.individual import Individual
+from peal.population import Population
 
 
 @dataclass
@@ -15,13 +17,13 @@ class Environment:
     evolutionary strategy.
 
     Args:
-        breeder (Breeder): The breeder to use for individual
+        pool (GenePool): The gene pool used for individual
             initialization.
-        fitness (Fitness): The fitness to use for evaluation of#
+        fitness (Fitness): The fitness to use for evaluation off
             individuals.
     """
 
-    breeder: Breeder
+    pool: GenePool
     fitness: Fitness
 
     def execute(self, strategy: Strategy, callbacks: list[Callback]) -> None:
@@ -37,9 +39,10 @@ class Environment:
 
         parent_populations = Community()
         for i in range(strategy.init_populations):
-            parent_populations.integrate(
-                self.breeder.breed(strategy.init_individuals)
-            )
+            population = Population()
+            for _ in range(strategy.init_individuals):
+                population.integrate(Individual(self.pool.random_genome()))
+            parent_populations.integrate(population)
             if strategy.select_parent_populations:
                 self.fitness.evaluate(parent_populations[-1])
             for callback in callbacks:

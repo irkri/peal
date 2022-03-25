@@ -19,7 +19,7 @@ strategy = peal.core.Strategy.from_string(
 )
 
 environment = peal.core.Environment(
-    breeder=peal.Breeder(gene_pool=pool),
+    pool=pool,
     fitness=evaluate,
 )
 

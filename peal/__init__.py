@@ -1,9 +1,7 @@
 from peal import core
 from peal.core import callback
 
-from peal import operations
-
-from peal.breeding import Breeder
+from peal import operators
 
 import peal.fitness as evaluation
 from peal.fitness import (

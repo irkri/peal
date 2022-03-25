@@ -1,20 +1,15 @@
+"""Module that provides operators that integrate one population into
+another. This can help integrating offspring into parent population.
+"""
+
 import numpy as np
 
 from peal.community import Community
-from peal.operations.iteration import StraightIteration
-from peal.operations.operator import CommunityOperator
+from peal.operators.iteration import StraightIteration
+from peal.operators.operator import Operator
 
 
-class IntegrationOperator(CommunityOperator):
-    """Abstract class for an integration operation that is responsible
-    to merge a given offspring and parent population into one.
-    """
-
-    def __init__(self):
-        super().__init__(StraightIteration[Community](batch_size=2))
-
-
-class FirstThingsFirst(IntegrationOperator):
+class FirstThingsFirst(Operator):
     """This integration operation merges the individuals of offspring
     and parents into a new population of same size as the parent
     population. At first, individuals from the first population supplied
@@ -33,13 +28,14 @@ class FirstThingsFirst(IntegrationOperator):
     """
 
     def __init__(self, size: int = -1):
-        super().__init__()
+        super().__init__(StraightIteration(batch_size=2))
         if not isinstance(size, int) or size < -2 or size == 0:
-            raise ValueError("Attribute size has to be -2, -1 or a non-zero "
-                             "positive integer")
+            raise ValueError(
+                "Attribute size has to be -2, -1 or a non-zero positive "
+                "integer")
         self._size = size
 
-    def _process(
+    def _process_community(
         self,
         container: Community,
     ) -> Community:
@@ -50,8 +46,9 @@ class FirstThingsFirst(IntegrationOperator):
         elif self._size == -2:
             req_size = pop1.size
         elif self._size > pop1.size + pop2.size:
-            raise RuntimeError("Given populations are too small for "
-                               "requested size")
+            raise RuntimeError(
+                "Given populations are too small for requested size"
+            )
 
         if pop1.size >= req_size:
             return Community(pop1[:req_size])
@@ -61,7 +58,7 @@ class FirstThingsFirst(IntegrationOperator):
         return Community(merged)
 
 
-class Crowded(IntegrationOperator):
+class Crowded(Operator):
     """This integration technique implements the so called 'crowding' to
     an evolutionary process.
 
@@ -71,10 +68,10 @@ class Crowded(IntegrationOperator):
     """
 
     def __init__(self, crowding_factor: int):
-        super().__init__()
+        super().__init__(StraightIteration(batch_size=2))
         self._cf = crowding_factor
 
-    def _process(
+    def _process_community(
         self,
         container: Community,
     ) -> Community:

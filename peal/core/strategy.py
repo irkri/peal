@@ -1,15 +1,14 @@
-from dataclasses import dataclass, field
 import re
+from dataclasses import dataclass, field
 from typing import ClassVar
-from peal.community import Community
 
-from peal.operations.iteration import NRandomBatchesIteration
-from peal.operations.mutation import NormalDist
-from peal.operations.operator import Operator
-from peal.operations.reproduction import CEquiMix, MultiMix, CCopy
-from peal.operations.selection import CBestMean, Best
-from peal.operations.integration import IntegrationOperator, FirstThingsFirst
-from peal.population import Population
+from peal.operators.clash import EquiMix
+from peal.operators.integration import FirstThingsFirst
+from peal.operators.iteration import NRandomBatchesIteration
+from peal.operators.mutation import NormalDist
+from peal.operators.operator import Operator
+from peal.operators.reproduction import Copy, DiscreteRecombination
+from peal.operators.selection import Best, BestMean
 
 
 @dataclass
@@ -60,11 +59,11 @@ class Strategy:
     init_individuals: int
     generations: int
 
-    reproduction: Operator[Population]
-    mutation: Operator[Population]
-    selection: Operator[Population]
+    reproduction: Operator
+    mutation: Operator
+    selection: Operator
 
-    integration: IntegrationOperator = field(
+    integration: Operator = field(
         default_factory=FirstThingsFirst,
     )
 
@@ -72,11 +71,11 @@ class Strategy:
     population_generations: int = 1
     select_parent_populations: bool = True
 
-    population_selection: Operator[Community] = field(
-        default_factory=CCopy,
+    population_selection: Operator = field(
+        default_factory=Copy,
     )
-    population_reproduction: Operator[Community] = field(
-        default_factory=CCopy,
+    population_reproduction: Operator = field(
+        default_factory=Copy,
     )
 
     @staticmethod
@@ -139,16 +138,16 @@ class Strategy:
             ),
             out_size=ind_mu,
         )
-        pop_selection = CBestMean(
+        pop_selection = BestMean(
             in_size=pop_lambda+pop_mu if pop_parent_selection else pop_lambda,
             out_size=pop_mu,
         )
-        reproduction = MultiMix(in_size=ind_rho)
+        reproduction = DiscreteRecombination(in_size=ind_rho)
         reproduction.iter_type = NRandomBatchesIteration(
             batch_size=ind_rho,
             total=ind_lambda,
         )
-        pop_reproduction = CEquiMix(
+        pop_reproduction = EquiMix(
             in_size=pop_mu,
             out_size=pop_lambda,
             group_size=pop_rho,

@@ -175,8 +175,8 @@ class GPPool(GenePool):
         max_depth: int,
     ):
         super().__init__(typing=(GeneType.NOMINAL, ))
-        self._elementary: dict[type, list[GPCallable]] = dict()
-        self._terminal: dict[type, list[GPTerminal]] = dict()
+        self._elementary: dict[type, list[GPCallable]] = {}
+        self._terminal: dict[type, list[GPTerminal]] = {}
         self._min_depth = min_depth
         self._max_depth = max_depth
 

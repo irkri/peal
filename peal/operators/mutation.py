@@ -1,22 +1,17 @@
+"""Module that defines operators that mutate individuals or populations.
+"""
+
 from typing import Optional
 import numpy as np
 
 from peal.genetics import GPPool, GPTerminal
-from peal.operations.iteration import SingleIteration
-from peal.operations.operator import PopulationOperator
+from peal.operators.operator import Operator
 from peal.population import Population
 
 
-class PopulationMutationOperator(PopulationOperator):
-    """Operator for the mutation of individuals in a popoulation."""
-
-    def __init__(self):
-        super().__init__(iter_type=SingleIteration())
-
-
-class BitFlip(PopulationMutationOperator):
+class BitFlip(Operator):
     """Mutation that applies the python ``not`` operator to genes in
-    a individual.
+    an individual.
 
     Args:
         prob (float, optional): The probability of each gene to mutate.
@@ -27,7 +22,7 @@ class BitFlip(PopulationMutationOperator):
         super().__init__()
         self._prob = prob
 
-    def _process(
+    def _process_population(
         self,
         container: Population,
     ) -> Population:
@@ -38,7 +33,7 @@ class BitFlip(PopulationMutationOperator):
         return Population(ind)
 
 
-class UniformInt(PopulationMutationOperator):
+class UniformInt(Operator):
     """Mutation that selects a random uniformly distributed integer from
     a given range with a certain probability for a single gene.
 
@@ -62,7 +57,7 @@ class UniformInt(PopulationMutationOperator):
         self._lowest = lowest
         self._highest = highest
 
-    def _process(
+    def _process_population(
         self,
         container: Population,
     ) -> Population:
@@ -78,7 +73,7 @@ class UniformInt(PopulationMutationOperator):
         return Population(ind)
 
 
-class UniformFloat(PopulationMutationOperator):
+class UniformFloat(Operator):
     """Mutation that mutates a gene to a random float in a given range
     with certain probability.
 
@@ -102,7 +97,7 @@ class UniformFloat(PopulationMutationOperator):
         self._lowest = lowest
         self._highest = highest
 
-    def _process(
+    def _process_population(
         self,
         container: Population,
     ) -> Population:
@@ -118,7 +113,7 @@ class UniformFloat(PopulationMutationOperator):
         return Population(ind)
 
 
-class NormalDist(PopulationMutationOperator):
+class NormalDist(Operator):
     """Mutation operator that changes genes for an individual with a
     probability by __adding__ a randomly distributed real value.
 
@@ -151,7 +146,7 @@ class NormalDist(PopulationMutationOperator):
         self._sigma = sigma
         self._alpha = alpha
 
-    def _process(
+    def _process_population(
         self,
         container: Population,
     ) -> Population:
@@ -173,7 +168,7 @@ class NormalDist(PopulationMutationOperator):
         return Population(ind)
 
 
-class GPPoint(PopulationMutationOperator):
+class GPPoint(Operator):
     """Point mutation used in a genetic programming algorithm.
     This mutation replaces a node in a genome tree by a subtree.
 
@@ -193,7 +188,7 @@ class GPPoint(PopulationMutationOperator):
         gene_pool: GPPool,
         min_height: int = 1,
         max_height: int = 1,
-        prob: float = 0.1
+        prob: float = 0.1,
     ):
         super().__init__()
         self._pool = gene_pool
@@ -201,7 +196,7 @@ class GPPoint(PopulationMutationOperator):
         self._max_height = max_height
         self._prob = prob
 
-    def _process(
+    def _process_population(
         self,
         container: Population,
     ) -> Population:

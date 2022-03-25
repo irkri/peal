@@ -1,43 +1,65 @@
+"""Module that provides iteration types that are used in evolutionary
+operators to iterate through populations or communities.
+"""
+
 from abc import ABC, abstractmethod
-from typing import Generic, Iterator, Optional, TypeVar
+from typing import Iterator, Optional, Union, overload
 
 import numpy as np
 
 from peal.community import Community
 from peal.population import Population
 
-T_iteration = TypeVar("T_iteration", Population, Community)
 
-
-class IterationType(ABC, Generic[T_iteration]):
+class IterationType(ABC):
     """Abstract class for an instruction on how to iterate over a
     population or community.
     """
 
     @abstractmethod
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         """Returns an iterator over the given population or community
         which yields smaller populations or communities.
         """
 
+    @overload
+    def __call__(
+        self,
+        container: Community,
+    ) -> Iterator[Community]:
+        ...
 
-class SingleIteration(IterationType[T_iteration]):
+    @overload
+    def __call__(
+        self,
+        container: Population,
+    ) -> Iterator[Population]:
+        ...
+
+    def __call__(
+        self,
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
+        return self._iterate(container)
+
+
+class SingleIteration(IterationType):
     """Class that iterates over single elements in a container in the
     same order they appear.
     """
 
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         for i in range(container.size):
             yield container[i:i+1]
 
 
-class RandomSingleIteration(IterationType[T_iteration]):
+class RandomSingleIteration(IterationType):
     """Class that iterates over single individuals in a population the
     same order they appear.
 
@@ -49,16 +71,16 @@ class RandomSingleIteration(IterationType[T_iteration]):
     def __init__(self, probability: float):
         self._probability = probability
 
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         for i in range(container.size):
             if np.random.random_sample() <= self._probability:
                 yield container[i:i+1]
 
 
-class StraightIteration(IterationType[T_iteration]):
+class StraightIteration(IterationType):
     """Class that performes a straight iteration over a population. That
     means that for a given batch size, in each iteration this number of
     individuals is returned. The individuals are located within the
@@ -71,15 +93,15 @@ class StraightIteration(IterationType[T_iteration]):
     def __init__(self, batch_size: int):
         self._batch_size = batch_size
 
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         for i in range(0, container.size, self._batch_size):
             yield container[i:i+self._batch_size]
 
 
-class RandomStraightIteration(IterationType[T_iteration]):
+class RandomStraightIteration(IterationType):
     """Class that performes the same straight iteration as
     :class:`StraightIteration` but returns each batch only with a
     certain probability.
@@ -94,16 +116,16 @@ class RandomStraightIteration(IterationType[T_iteration]):
         self._batch_size = batch_size
         self._probability = probability
 
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         for i in range(0, container.size, self._batch_size):
             if np.random.random_sample() <= self._probability:
                 yield container[i:i+self._batch_size]
 
 
-class NRandomBatchesIteration(IterationType[T_iteration]):
+class NRandomBatchesIteration(IterationType):
     """Class that iterates over the given population by yielding a
     specified number of randomly selected batches of a given size.
 
@@ -121,10 +143,10 @@ class NRandomBatchesIteration(IterationType[T_iteration]):
         self._batch_size = batch_size
         self._total = total
 
-    def iterate(
+    def _iterate(
         self,
-        container: T_iteration,
-    ) -> Iterator[T_iteration]:
+        container: Union[Population, Community],
+    ) -> Iterator[Union[Population, Community]]:
         total = self._total if self._total is not None else container.size
         for _ in range(total):
             indices = np.random.choice(

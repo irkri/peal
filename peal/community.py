@@ -73,11 +73,7 @@ class Community:
         ...
 
     @overload
-    def __getitem__(self, key: slice) -> "Community":
-        ...
-
-    @overload
-    def __getitem__(self, key: Sequence[int]) -> "Community":
+    def __getitem__(self, key: Union[slice, Sequence[int]]) -> "Community":
         ...
 
     def __getitem__(
@@ -86,7 +82,7 @@ class Community:
     ) -> Union["Community", Population]:
         if isinstance(key, slice):
             return Community(self._populations[key])
-        elif isinstance(key, Sequence):
+        if isinstance(key, Sequence):
             return Community([self._populations[i] for i in key])
         return self._populations.__getitem__(key)
 
@@ -98,8 +94,8 @@ class Community:
     def __setitem__(self, key: slice, value: Iterable[Population]) -> None:
         ...
 
-    def __setitem__(self, *args) -> None:
-        self._populations.__setitem__(*args)
+    def __setitem__(self, key, value) -> None:
+        self._populations.__setitem__(key, value)
 
     def __repr__(self) -> str:
         return f"Community(size={self.size})"

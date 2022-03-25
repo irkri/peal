@@ -137,8 +137,8 @@ class Population:
     def __setitem__(self, key: slice, value: Iterable[Individual]) -> None:
         ...
 
-    def __setitem__(self, *args) -> None:
-        self._individuals.__setitem__(*args)
+    def __setitem__(self, key, value) -> None:
+        self._individuals.__setitem__(key, value)
 
     def __str__(self) -> str:
         return self.summary()

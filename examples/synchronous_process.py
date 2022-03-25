@@ -17,21 +17,21 @@ def evaluate(individual: peal.Individual) -> float:
 strategy = peal.core.Strategy(
     init_individuals=100,
     generations=100,
-    selection=peal.operations.selection.Tournament(size=4),
-    mutation=peal.operations.mutation.UniformInt(
+    selection=peal.operators.selection.Tournament(size=4),
+    mutation=peal.operators.mutation.UniformInt(
         prob=0.1,
         lowest=0,
         highest=100,
     ),
-    reproduction=peal.operations.reproduction.Crossover(
+    reproduction=peal.operators.reproduction.Crossover(
         npoints=1,
         probability=0.7,
     ),
-    integration=peal.operations.integration.Crowded(10),
+    integration=peal.operators.integration.Crowded(10),
 )
 
 environment = peal.core.Environment(
-    breeder=peal.Breeder(pool),
+    pool=pool,
     fitness=evaluate,
 )
 
@@ -44,12 +44,14 @@ print(tracker.best)
 
 # - plotting -
 
-fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+fig = plt.figure(figsize=(10, 5))
 
-ax[0].plot(tracker.best.fitness)
-ax[0].set_title("Fitness")
+axis1 = fig.add_subplot(2, 1, 1)
+axis1.plot(tracker.best.fitness)
+axis1.set_title("Fitness")
 
-ax[1].plot(statistics.diversity)
-ax[1].set_title("Diversity")
+axis2 = fig.add_subplot(2, 1, 2)
+axis2.plot(statistics.diversity)
+axis2.set_title("Diversity")
 
 plt.show()

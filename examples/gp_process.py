@@ -41,18 +41,18 @@ def evaluate(values: list[float]) -> float:
 strategy = peal.core.Strategy(
     generations=100,
     init_individuals=50,
-    reproduction=peal.operations.reproduction.Copy(),
-    mutation=peal.operations.mutation.GPPoint(
+    reproduction=peal.operators.reproduction.Copy(),
+    mutation=peal.operators.mutation.GPPoint(
         gene_pool=pool,
         min_height=1,
         max_height=3,
         prob=0.1,
     ),
-    selection=peal.operations.selection.Tournament(size=3),
+    selection=peal.operators.selection.Tournament(size=3),
 )
 
 environment = peal.core.Environment(
-    breeder=peal.Breeder(pool),
+    pool=pool,
     fitness=peal.GPFitness(arguments=args, evaluation=evaluate),
 )
 
@@ -62,13 +62,14 @@ environment.execute(strategy, callbacks=[tracker])
 
 print(tracker.best[-1])
 
-fig, ax = plt.subplots(2, 1)
-# ax2 = ax.twinx()
+fig = plt.figure(figsize=(10, 5))
 
-ax[0].plot(tracker.best.fitness, color="blue")
-ax[0].set_title("Fitness/Diversity")
-ax[1].plot(X, np.exp(-X**2))
-ax[1].plot(
+axis1 = fig.add_subplot(1, 2, 1)
+axis1.plot(tracker.best.fitness, color="blue")
+axis1.set_title("Fitness/Diversity")
+axis2 = fig.add_subplot(1, 2, 2)
+axis2.plot(X, np.exp(-X**2))
+axis2.plot(
     X,
     [peal.evaluation.gp_evaluate(tracker.best[-1], argset) for argset in args]
 )

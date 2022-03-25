@@ -1,4 +1,5 @@
-from peal.operations import (
+from peal.operators import (
+    clash,
     integration,
     mutation,
     operator,

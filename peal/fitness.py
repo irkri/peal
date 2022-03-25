@@ -76,7 +76,7 @@ def gp_evaluate(
     Returns:
         A value that represents the result of the tree evaluation.
     """
-    argset = arguments if arguments is not None else dict()
+    argset = arguments if arguments is not None else {}
     if "x" not in argset:
         print(80*"=")
         print(f"{argset=}")
@@ -130,7 +130,7 @@ class GPFitness(Fitness):
         eval_ = evaluation if evaluation is not None else (
             lambda array: float(array[0])
         )
-        argsets = arguments if arguments is not None else [dict()]
+        argsets = arguments if arguments is not None else [{}]
         super().__init__(lambda individual: eval_(
             [gp_evaluate(individual, argset) for argset in argsets]
         ))
