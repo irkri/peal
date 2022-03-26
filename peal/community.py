@@ -12,10 +12,12 @@ class Community:
             populations to add.
     """
 
+    __slots__ = ("_iter_id", "_populations")
+
     def __init__(
         self,
         populations: Optional[Union[Population, Iterable[Population]]] = None,
-    ):
+    ) -> None:
         self._iter_id = -1
         self._populations: list[Population] = []
         if populations is not None:

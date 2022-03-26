@@ -218,7 +218,7 @@ class GPPoint(Operator):
             right += 1
         ind.genes = np.concatenate((
             ind.genes[:index],
-            self._pool.random_genome(
+            self._pool.create_genome(
                 rtype=ind.genes[index].rtype,
                 height=np.random.randint(self._min_height, self._max_height+1),
             ),

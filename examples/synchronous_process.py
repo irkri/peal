@@ -5,7 +5,7 @@ import peal
 
 A = np.array([4, 74, 43, 23, 0])
 
-pool = peal.genetics.IntegerPool(shape=A.size, lower=0, upper=101)
+pool = peal.genetics.IntegerPool(length=A.size, lower=0, upper=101)
 
 
 @peal.fitness

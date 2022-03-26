@@ -56,30 +56,26 @@ class Diversity(Callback):
 
     Args:
         pool (GenePool): A gene pool that is used in the evolutionary
-            process to generate individuals.
+            process to generate individuals. Only ordinal genes and
+            genomes of constant size are allowed.
     """
 
     def __init__(self, pool: GenePool) -> None:
+        if pool.length == 0 or pool.typing == GeneType.METRIC:
+            raise ValueError("Diversity only available for ordinal genomes of "
+                             "constant length")
         self._pool = pool
-        if GeneType.CONST_SIZE not in self._pool.typing:
-            raise ValueError("Diversity not available for genomes of "
-                             "variable length")
         self.gene_diversity: np.ndarray = np.empty((0, 1), dtype=float)
 
     @property
     def diversity(self) -> np.ndarray:
-        """For gene pools consisting of only categorical gene types,
-        this property is the scaled average gene diversity as a float
-        between 0 and 1 at each locus in a genome. For metric genomes,
-        it is the mean of standard deviations across the genes of a
-        population over multiple generations.
+        """The scaled average gene diversity as a float between 0 and 1
+        at each locus in a genome.
         """
-        if GeneType.METRIC not in self._pool.typing:
-            return (
-                self._pool.size / (self._pool.size - 1)
-                * self.gene_diversity.mean(axis=1)
-            )
-        return self.gene_diversity.mean(axis=1)
+        return (
+            self._pool.size / (self._pool.size - 1)
+            * self.gene_diversity.mean(axis=1)
+        )
 
     def on_start(self, population: Population) -> None:
         self.gene_diversity = np.zeros(
@@ -89,15 +85,11 @@ class Diversity(Callback):
 
     def on_generation_end(self, population: Population) -> None:
         div: np.ndarray = np.ones((population[0].genes.shape[0],))
-        if GeneType.METRIC not in self._pool.typing:
-            unique = set(np.hstack(list(population.genes.flatten())))
-            for value in unique:
-                div -= (
-                    np.sum(population.genes == value, axis=0)
-                    / population.size
-                )**2
-        else:
-            div = np.std(population.genes, axis=0)
+        unique = set(np.hstack(list(population.genes.flatten())))
+        for value in unique:
+            div -= (
+                np.sum(population.genes == value, axis=0) / population.size
+            )**2
         self.gene_diversity = np.vstack([
             self.gene_diversity,
             div

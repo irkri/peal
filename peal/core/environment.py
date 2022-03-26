@@ -41,7 +41,7 @@ class Environment:
         for i in range(strategy.init_populations):
             population = Population()
             for _ in range(strategy.init_individuals):
-                population.integrate(Individual(self.pool.random_genome()))
+                population.integrate(Individual(self.pool.create_genome()))
             parent_populations.integrate(population)
             if strategy.select_parent_populations:
                 self.fitness.evaluate(parent_populations[-1])

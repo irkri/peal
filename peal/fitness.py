@@ -89,7 +89,7 @@ def gp_evaluate(
             else:
                 name = individual.genes[index].name
                 if name not in argset:
-                    raise RuntimeError(f"Argument name {name} "
+                    raise RuntimeError(f"Argument name {name!r} requested but "
                                        "not supplied")
                 values.insert(0, argset[name])
             index -= 1

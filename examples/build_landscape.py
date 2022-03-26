@@ -4,7 +4,7 @@ import numpy as np
 import peal
 from visual_callbacks import ExploreLandscape, VisualTracker
 
-pool = peal.genetics.NumberPool(shape=2, lower=-5, upper=5)
+pool = peal.genetics.NumberPool(length=2, lower=-5, upper=5)
 
 
 @peal.fitness

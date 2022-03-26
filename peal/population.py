@@ -14,10 +14,12 @@ class Population:
             individuals to add.
     """
 
+    __slots__ = ("_individuals", "_iter_id")
+
     def __init__(
         self,
         individuals: Optional[Union[Individual, Iterable[Individual]]] = None,
-    ):
+    ) -> None:
         self._iter_id = -1
         self._individuals: list[Individual] = []
         if individuals is not None:
