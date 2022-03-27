@@ -34,7 +34,7 @@ class GenePool(ABC):
             variable length. Defaults to 0.
     """
 
-    def __init__(self, typing: GeneType, length: int = 0) -> None:
+    def __init__(self, typing: GeneType, length: int = 0):
         self._size = 0 if typing != GeneType.METRIC else np.inf
         self._typing = typing
         self._initializer: Optional[Callable[[], np.ndarray]] = None
@@ -64,6 +64,17 @@ class GenePool(ABC):
     def _initialize(self, **kwargs) -> np.ndarray:
         ...
 
+    def initializer(
+        self,
+        func: Callable[[], np.ndarray],
+    ) -> Callable[[], np.ndarray]:
+        """Decorator for a non-standard initializer method. Use it on a
+        function that takes no arguments and returns a numpy array which
+        represents a genome of this gene pool.
+        """
+        self._initializer = func
+        return func
+
     def create_genome(self, **kwargs) -> np.ndarray:
         """Generates a genome for an individual. The method used to pick
         a random genome can be customized.
@@ -74,6 +85,25 @@ class GenePool(ABC):
         if self._initializer is not None:
             return self._initializer(**kwargs)
         return self._initialize(**kwargs)
+
+
+class BitPool(GenePool):
+    """A gene pool of constant length genomes only containing zeros and
+    ones.
+
+    Args:
+        length (int): The number of genes in a genome.
+    """
+
+    def __init__(
+        self,
+        length: int,
+    ) -> None:
+        super().__init__(typing=GeneType.NOMINAL, length=length)
+        self._size = 2
+
+    def _initialize(self, **kwargs) -> np.ndarray:
+        return np.random.choice([True, False], size=self.length)
 
 
 class IntegerPool(GenePool):
