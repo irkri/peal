@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any, Callable, Optional, Union, get_type_hints
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -35,7 +34,7 @@ class GenePool(ABC):
             variable length. Defaults to 0.
     """
 
-    def __init__(self, typing: GeneType, length: int = 0):
+    def __init__(self, typing: GeneType, length: int = 0) -> None:
         self._size = 0 if typing != GeneType.METRIC else np.inf
         self._typing = typing
         self._initializer: Optional[Callable[[], np.ndarray]] = None
@@ -92,7 +91,7 @@ class IntegerPool(GenePool):
         length: int,
         lower: int,
         upper: int,
-    ):
+    ) -> None:
         super().__init__(typing=GeneType.ORDINAL, length=length)
         self.lower = lower
         self.upper = upper
@@ -121,7 +120,7 @@ class NumberPool(GenePool):
         length: int,
         lower: Union[int, float],
         upper: Union[int, float],
-    ):
+    ) -> None:
         super().__init__(typing=GeneType.METRIC, length=length)
         self.lower = lower
         self.upper = upper
@@ -132,182 +131,3 @@ class NumberPool(GenePool):
             * np.random.random_sample(size=self.length)
             + self.lower
         )
-
-
-class GPNode:
-    """Class representation of a node in a genetic programming tree."""
-
-    __slots__ = ("rtype", "name")
-
-    def __init__(self, rtype: type, name: str):
-        self.rtype = rtype
-        self.name = name
-
-
-class GPCallable(GPNode):
-    """Special GP tree node that represents a elementary function in
-    such a tree with multiple arguments and a specific return type.
-    """
-
-    __slots__ = ("rtype", "name", "argtypes", "method")
-
-    def __init__(
-        self,
-        rtype: type,
-        name: str,
-        argtypes: dict[str, Any],
-        method: Callable[..., Any],
-    ) -> None:
-        super().__init__(rtype, name)
-        self.argtypes = argtypes
-        self.method = method
-
-    def __call__(self, *args) -> Any:
-        return self.method(*args)
-
-    def __repr__(self) -> str:
-        return f"{self.name}()"
-
-
-class GPTerminal(GPNode):
-    """Special GP tree node that represents a elementary function in
-    such a tree with multiple arguments and a specific return type.
-    """
-
-    __slots__ = ("rtype", "name", "value")
-
-    def __init__(
-        self,
-        rtype: type,
-        name: str,
-        value: Optional[Any] = None,
-    ) -> None:
-        super().__init__(rtype, name)
-        self.value = value
-
-    @property
-    def allocated(self) -> bool:
-        return self.value is not None
-
-    def __repr__(self) -> str:
-        if not self.allocated:
-            return f"<{self.name}>"
-        return f"{self.value}"
-
-
-class GPPool(GenePool):
-    """A gene pool that is used for genetic programming. An individual
-    in GP has a tree-like structure of genes and single nodes in this
-    tree are methods listed in this type of pool.
-    New methods should be added by using the decorator
-    :meth:`GPPool.allele` on a newly created instance of this class.
-
-    Args:
-        min_depth (int): The minimum depth of a genome tree.
-        max_depth (int): The maximum depth of a genome tree.
-    """
-
-    def __init__(
-        self,
-        min_depth: int,
-        max_depth: int,
-    ):
-        super().__init__(typing=GeneType.NOMINAL)
-        self._elementary: dict[type, list[GPCallable]] = {}
-        self._terminal: dict[type, list[GPTerminal]] = {}
-        self._min_depth = min_depth
-        self._max_depth = max_depth
-
-    @property
-    def min_depth(self) -> int:
-        return self._min_depth
-
-    @property
-    def max_depth(self) -> int:
-        return self._max_depth
-
-    def _initialize(self, **kwargs) -> np.ndarray:
-        rtype = kwargs.get(
-            "rtype",
-            np.random.choice(np.array(list(self._elementary.keys()))),
-        )
-        height = kwargs.get(
-            "height",
-            np.random.randint(self._min_depth, self._max_depth),
-        )
-        stack: list[tuple[int, type]] = [(0, rtype)]
-        genes = []
-        while len(stack) > 0:
-            depth, rtype = stack.pop(0)
-            if depth == height:
-                if rtype not in self._terminal:
-                    raise IndexError("Failed to create a GP-based genome; "
-                                     f"A terminal allele of type {rtype} "
-                                     "is requested but not found.")
-                terminal = np.random.choice(np.array(self._terminal[rtype]))
-                genes.append(terminal)
-            else:
-                if rtype not in self._elementary:
-                    raise IndexError("Failed to create a GP-based genom; "
-                                     f"An elementary allele of type {rtype} "
-                                     "is requested but not found.")
-                elementary: GPCallable = np.random.choice(
-                    np.array(self._elementary[rtype])
-                )
-                requested_types = elementary.argtypes
-                genes.append(elementary)
-                for vartype in requested_types.values():
-                    stack.append((depth + 1, vartype))
-        return np.array(genes)
-
-    def allele(self, func: Callable[..., Any]) -> Callable[..., Any]:
-        """Decorator that can be used on a function to add a callable
-        as an allele to the pool.
-        """
-        hints = get_type_hints(func).copy()
-        rtype = hints.pop("return")
-
-        if rtype not in self._elementary:
-            self._elementary[rtype] = []
-        self._elementary[rtype].append(GPCallable(
-            rtype=rtype,
-            name=func.__name__,
-            argtypes=hints,
-            method=func,
-        ))
-        return func
-
-    def add_arguments(self, arguments: dict[str, type]) -> None:
-        """Add special terminal symbols, i.e. arguments, to the list of
-        alleles in this pool.
-        These terminal symbols do not have a fixed value but can be seen
-        as arguments that have to be supplied to each individual before
-        calculating its fitness.
-
-        Args:
-            arguments (dict[str, type]): A dictionary mapping argument
-                names to their corresponding type.
-        """
-        for name, type_ in arguments.items():
-            if type_ not in self._terminal:
-                self._terminal[type_] = []
-            self._terminal[type_].append(GPTerminal(
-                rtype=type_,
-                name=name,
-            ))
-
-    def add_terminals(self, terminals: list[Any]) -> None:
-        """Add terminal symbols to the list of alleles in this pool.
-
-        Args:
-            arguments (list[Any]): A list of terminal symbols.
-        """
-        for value in terminals:
-            var = GPTerminal(
-                rtype=type(value),
-                name="",
-                value=value,
-            )
-            if type(value) not in self._terminal:
-                self._terminal[type(value)] = []
-            self._terminal[type(value)].append(var)

@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 import peal
 
-pool = peal.genetics.GPPool(min_depth=1, max_depth=3)
+pool = peal.gp.Pool(min_depth=1, max_depth=3)
 
 
 @pool.allele
@@ -27,7 +27,7 @@ def cos(x: float) -> float:
 
 
 pool.add_arguments({"x": float})
-pool.add_terminals([0.5, 1, -1, -0.5])
+pool.add_terminals(np.random.random)
 
 
 X = np.linspace(-5, 5, 100)
@@ -39,21 +39,21 @@ def evaluate(values: list[float]) -> float:
 
 
 strategy = peal.core.Strategy(
-    generations=100,
     init_individuals=50,
+    generations=100,
     reproduction=peal.operators.reproduction.Copy(),
-    mutation=peal.operators.mutation.GPPoint(
+    mutation=peal.gp.PointMutation(
         gene_pool=pool,
         min_height=1,
         max_height=3,
-        prob=0.1,
+        prob=0.3,
     ),
     selection=peal.operators.selection.Tournament(size=3),
 )
 
 environment = peal.core.Environment(
     pool=pool,
-    fitness=peal.GPFitness(arguments=args, evaluation=evaluate),
+    fitness=peal.gp.Fitness(arguments=args, evaluation=evaluate),
 )
 
 tracker = peal.callback.BestWorst()
@@ -64,14 +64,19 @@ print(tracker.best[-1])
 
 fig = plt.figure(figsize=(10, 5))
 
-axis1 = fig.add_subplot(1, 2, 1)
-axis1.plot(tracker.best.fitness, color="blue")
-axis1.set_title("Fitness/Diversity")
-axis2 = fig.add_subplot(1, 2, 2)
-axis2.plot(X, np.exp(-X**2))
-axis2.plot(
-    X,
-    [peal.evaluation.gp_evaluate(tracker.best[-1], argset) for argset in args]
-)
+for i in range(20):
+    axis = fig.add_subplot(4, 5, i+1)
+    axis.plot(X, np.exp(-X**2))
+    axis.plot(
+        X,
+        [peal.gp.evaluate(tracker.best[(i+1)*5-1], argset) for argset in args]
+    )
+    axis.set_title(f"Generation {(i+1)*5}")
+
+fig.tight_layout()
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(tracker.best.fitness)
+ax.set_title("Fitness")
 
 plt.show()

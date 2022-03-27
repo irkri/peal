@@ -19,7 +19,7 @@ class Tournament(Operator):
             a single tournament.
     """
 
-    def __init__(self, size: int = 2):
+    def __init__(self, size: int = 2) -> None:
         super().__init__(iter_type=NRandomBatchesIteration(batch_size=size))
 
     def _process_population(
@@ -34,7 +34,7 @@ class Best(Operator):
     individuals of a population.
     """
 
-    def __init__(self, in_size: int, out_size: int):
+    def __init__(self, in_size: int, out_size: int) -> None:
         if in_size < out_size:
             raise ValueError("in_size must at least be as big as out_size")
         super().__init__(iter_type=StraightIteration(batch_size=in_size))
@@ -60,7 +60,7 @@ class BestMean(Operator):
         out_size (int): Number of populations to select.
     """
 
-    def __init__(self, in_size: int, out_size: int):
+    def __init__(self, in_size: int, out_size: int) -> None:
         super().__init__(iter_type=StraightIteration(batch_size=in_size))
         self._out_size = out_size
 

@@ -68,7 +68,7 @@ class RandomSingleIteration(IterationType):
             returned.
     """
 
-    def __init__(self, probability: float):
+    def __init__(self, probability: float) -> None:
         self._probability = probability
 
     def _iterate(
@@ -90,7 +90,7 @@ class StraightIteration(IterationType):
         batch_size (int) : The number of individuals to return at once.
     """
 
-    def __init__(self, batch_size: int):
+    def __init__(self, batch_size: int) -> None:
         self._batch_size = batch_size
 
     def _iterate(
@@ -112,7 +112,7 @@ class RandomStraightIteration(IterationType):
             with.
     """
 
-    def __init__(self, batch_size: int, probability: float):
+    def __init__(self, batch_size: int, probability: float) -> None:
         self._batch_size = batch_size
         self._probability = probability
 
@@ -137,7 +137,11 @@ class NRandomBatchesIteration(IterationType):
             the size of the input population. Defaults to None.
     """
 
-    def __init__(self, batch_size: int = 1, total: Optional[int] = None):
+    def __init__(
+        self,
+        batch_size: int = 1,
+        total: Optional[int] = None,
+    ) -> None:
         if not isinstance(batch_size, int) and batch_size <= 0:
             raise ValueError("batch_size has to be an integer > 0")
         self._batch_size = batch_size

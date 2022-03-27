@@ -61,9 +61,9 @@ class Environment:
                     offspring = strategy.reproduction.process(parents)
                     offspring = strategy.mutation.process(offspring)
                     self.fitness.evaluate(offspring)
-                    offspring, = strategy.integration.process(
+                    offspring = strategy.integration.process(
                         Community((offspring, parents))
-                    )
+                    )[0]
                     offspring_populations[i] = strategy.selection.process(
                         offspring
                     )

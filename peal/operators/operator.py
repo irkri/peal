@@ -31,7 +31,7 @@ class Operator:
     def __init__(
         self,
         iter_type: Optional[IterationType] = None,
-    ):
+    ) -> None:
         self._iter_type = SingleIteration() if iter_type is None else iter_type
 
     @property

@@ -24,7 +24,7 @@ class EquiMix(Operator):
             the same number of individuals.
     """
 
-    def __init__(self, in_size: int, out_size: int, group_size: int):
+    def __init__(self, in_size: int, out_size: int, group_size: int) -> None:
         super().__init__(StraightIteration(batch_size=in_size))
         self._group_size = group_size
         self._out_size = out_size

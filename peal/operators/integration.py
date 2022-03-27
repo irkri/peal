@@ -27,7 +27,7 @@ class FirstThingsFirst(Operator):
             argument is taken literally. Defaults to -1.
     """
 
-    def __init__(self, size: int = -1):
+    def __init__(self, size: int = -1) -> None:
         super().__init__(StraightIteration(batch_size=2))
         if not isinstance(size, int) or size < -2 or size == 0:
             raise ValueError(
@@ -67,7 +67,7 @@ class Crowded(Operator):
             compare one child to. Known as the crowding factor.
     """
 
-    def __init__(self, crowding_factor: int):
+    def __init__(self, crowding_factor: int) -> None:
         super().__init__(StraightIteration(batch_size=2))
         self._cf = crowding_factor
 

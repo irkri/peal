@@ -4,7 +4,6 @@
 from typing import Optional
 import numpy as np
 
-from peal.genetics import GPPool, GPTerminal
 from peal.operators.operator import Operator
 from peal.population import Population
 
@@ -18,7 +17,7 @@ class BitFlip(Operator):
             Defaults to 0.1.
     """
 
-    def __init__(self, prob: float = 0.1):
+    def __init__(self, prob: float = 0.1) -> None:
         super().__init__()
         self._prob = prob
 
@@ -51,7 +50,7 @@ class UniformInt(Operator):
         prob: float = 0.1,
         lowest: int = -1,
         highest: int = 1,
-    ):
+    ) -> None:
         super().__init__()
         self._prob = prob
         self._lowest = lowest
@@ -91,7 +90,7 @@ class UniformFloat(Operator):
         prob: float = 0.1,
         lowest: float = -1.0,
         highest: float = 1.0,
-    ):
+    ) -> None:
         super().__init__()
         self._prob = prob
         self._lowest = lowest
@@ -139,7 +138,7 @@ class NormalDist(Operator):
         mu: float = 0.0,
         sigma: float = 1.0,
         alpha: Optional[float] = None,
-    ):
+    ) -> None:
         super().__init__()
         self._prob = prob
         self._mu = mu
@@ -165,63 +164,4 @@ class NormalDist(Operator):
             sigma,
             size=len(hits),
         )
-        return Population(ind)
-
-
-class GPPoint(Operator):
-    """Point mutation used in a genetic programming algorithm.
-    This mutation replaces a node in a genome tree by a subtree.
-
-    Args:
-        gene_pool (GPPool): The gene pool used to generate a genome
-            tree for individuals.
-        min_height (int, optional): The minimal height of the replacing
-            subtree. Defaults to 1.
-        max_height (int, optional): The maximal height of the replacing
-            subtree. Defaults to 1.
-        prob (float, optional): The probability to mutate one node in
-            the tree representation of an individual. Defaults to 0.1.
-    """
-
-    def __init__(
-        self,
-        gene_pool: GPPool,
-        min_height: int = 1,
-        max_height: int = 1,
-        prob: float = 0.1,
-    ):
-        super().__init__()
-        self._pool = gene_pool
-        self._min_height = min_height
-        self._max_height = max_height
-        self._prob = prob
-
-    def _process_population(
-        self,
-        container: Population,
-    ) -> Population:
-        if np.random.random_sample() >= self._prob:
-            return container.deepcopy()
-
-        ind = container[0].copy()
-        index = np.random.randint(0, len(ind.genes))
-        # search for subtree slice starting at index in the tree
-        right = index + 1
-        total = 0
-        if not isinstance(ind.genes[index], GPTerminal):
-            total = len(ind.genes[index].argtypes)
-        while total > 0:
-            if isinstance(ind.genes[right], GPTerminal):
-                total -= 1
-            else:
-                total -= len(ind.genes[right].argtypes) - 1
-            right += 1
-        ind.genes = np.concatenate((
-            ind.genes[:index],
-            self._pool.create_genome(
-                rtype=ind.genes[index].rtype,
-                height=np.random.randint(self._min_height, self._max_height+1),
-            ),
-            ind.genes[right:],
-        ))
         return Population(ind)

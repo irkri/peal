@@ -16,7 +16,7 @@ class Copy(Operator):
     populations.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(iter_type=SingleIteration())
 
     def _process_population(
@@ -42,7 +42,7 @@ class Crossover(Operator):
             crossover operation. Defaults to 0.5.
     """
 
-    def __init__(self, npoints: int = 2, probability: float = 0.5):
+    def __init__(self, npoints: int = 2, probability: float = 0.5) -> None:
         super().__init__(
             RandomStraightIteration(batch_size=2, probability=probability)
         )
@@ -91,7 +91,7 @@ class DiscreteRecombination(Operator):
             crossover operation. Defaults to 0.5.
     """
 
-    def __init__(self, in_size: int = 2, probability: float = 0.5):
+    def __init__(self, in_size: int = 2, probability: float = 0.5) -> None:
         super().__init__(
             RandomStraightIteration(
                 batch_size=in_size,
