@@ -1,4 +1,6 @@
-from typing import Any, Callable, Optional, get_type_hints
+from abc import abstractmethod
+from typing import Any, Callable, Optional, Union, get_type_hints
+from winreg import REG_OPTION_NON_VOLATILE
 
 import numpy as np
 
@@ -18,30 +20,49 @@ class GPNode:
         self.rtype = rtype
         self.name = name
 
+    @abstractmethod
+    def value(self, **kwargs) -> Any:
+        ...
+
+    @abstractmethod
+    def copy(self) -> "GPNode":
+        ...
+
 
 class GPCallable(GPNode):
     """Special GP tree node that represents a elementary function in
     such a tree with multiple arguments and a specific return type.
     """
 
-    __slots__ = ("rtype", "name", "argtypes", "method")
+    __slots__ = ("argtypes", "method", "children")
 
     def __init__(
         self,
         rtype: type,
         name: str,
-        argtypes: dict[str, Any],
+        argtypes: list[type],
         method: Callable[..., Any],
+        children: Optional[list[GPNode]] = None
     ) -> None:
         super().__init__(rtype, name)
         self.argtypes = argtypes
         self.method = method
+        self.children: list[GPNode] = [] if children is None else children
 
-    def __call__(self, *args) -> Any:
-        return self.method(*args)
+    def value(self, **kwargs) -> Any:
+        return self.method(*(node.value(**kwargs) for node in self.children))
+
+    def copy(self) -> "GPCallable":
+        return GPCallable(
+            self.rtype,
+            self.name,
+            self.argtypes,
+            self.method,
+            [child.copy() for child in self.children]
+        )
 
     def __repr__(self) -> str:
-        return f"{self.name}()"
+        return f"{self.name}({', '.join(map(str, self.children))})"
 
 
 class GPTerminal(GPNode):
@@ -49,7 +70,7 @@ class GPTerminal(GPNode):
     such a tree with multiple arguments and a specific return type.
     """
 
-    __slots__ = ("rtype", "name", "_value")
+    __slots__ = ("_value", )
 
     def __init__(
         self,
@@ -60,15 +81,21 @@ class GPTerminal(GPNode):
         super().__init__(rtype, name)
         self._value = value
 
-    @property
-    def value(self) -> Any:
+    def value(self, **kwargs) -> Any:
         if callable(self._value):
             self._value = self._value()
+        if not self.allocated:
+            if not self.name in kwargs:
+                raise RuntimeError(
+                    f"Found unbound terminal named {self.name!r} "
+                    "without a value given"
+                )
+            return kwargs[self.name]
         return self._value
 
     @property
     def allocated(self) -> bool:
-        return self.value is not None
+        return self._value is not None
 
     def copy(self) -> "GPTerminal":
         return GPTerminal(self.rtype, self.name, self._value)
@@ -76,7 +103,7 @@ class GPTerminal(GPNode):
     def __repr__(self) -> str:
         if not self.allocated:
             return f"<{self.name}>"
-        return f"{self.value}"
+        return f"{self.value()}"
 
 
 class Pool(GenePool):
@@ -110,6 +137,41 @@ class Pool(GenePool):
     def max_depth(self) -> int:
         return self._max_depth
 
+    def _fill_argtypes(
+        self,
+        node: GPNode,
+        terminal_prob: float,
+    ) -> None:
+        if not isinstance(node, GPCallable):
+            return
+        for rtype in node.argtypes:
+            if rtype not in self._elementary and rtype not in self._terminal:
+                raise RuntimeError(
+                    "Failed to create a GP-based genome; An allele of "
+                    f"type {rtype} is requested but not found."
+                )
+            if (np.random.random() < terminal_prob
+                    or rtype not in self._elementary):
+                if rtype not in self._terminal:
+                    raise IndexError(
+                        "Failed to create a GP-based genome; "
+                        f"A terminal allele of type {rtype} "
+                        "is requested but not found."
+                    )
+                node.children.append(np.random.choice(
+                    np.array(self._terminal[rtype])
+                ).copy())
+            else:
+                if rtype not in self._elementary:
+                    raise IndexError(
+                        "Failed to create a GP-based genom; "
+                        f"An elementary allele of type {rtype} "
+                        "is requested but not found."
+                    )
+                node.children.append(np.random.choice(
+                    np.array(self._elementary[rtype])
+                ).copy())
+
     def _initialize(self, **kwargs) -> np.ndarray:
         rtype = kwargs.get(
             "rtype",
@@ -119,39 +181,34 @@ class Pool(GenePool):
             "height",
             np.random.randint(self._min_depth, self._max_depth),
         )
-        stack: list[tuple[int, type]] = [(0, rtype)]
-        genes = []
-        while len(stack) > 0:
-            depth, rtype = stack.pop(0)
-            if depth == height:
-                if rtype not in self._terminal:
-                    raise IndexError("Failed to create a GP-based genome; "
-                                     f"A terminal allele of type {rtype} "
-                                     "is requested but not found.")
-                terminal = np.random.choice(np.array(self._terminal[rtype]))
-                # copying the terminal symbol is crucial for ephemeral
-                # random constants; the true value of the terminal will
-                # be set the first time it is accessed
-                genes.append(terminal.copy())
-            else:
-                if rtype not in self._elementary:
-                    raise IndexError("Failed to create a GP-based genom; "
-                                     f"An elementary allele of type {rtype} "
-                                     "is requested but not found.")
-                elementary: GPCallable = np.random.choice(
-                    np.array(self._elementary[rtype])
-                )
-                requested_types = elementary.argtypes
-                genes.append(elementary)
-                for vartype in requested_types.values():
-                    stack.append((depth + 1, vartype))
-        return np.array(genes)
+        if height == 0:
+            return np.random.choice(np.array(self._terminal[rtype])).copy()
+        root: GPCallable = np.random.choice(
+            np.array(self._elementary[rtype])
+        ).copy()
+        node = root
+        terminal_prob = (
+            len(self._terminal)
+            / (len(self._terminal) + len(self._elementary))
+        )
+        nodes = [node]
+        for _ in range(height-1):
+            next_nodes = []
+            for n in nodes:
+                self._fill_argtypes(n, terminal_prob=terminal_prob)
+                if isinstance(n, GPCallable):
+                    for child in n.children:
+                        next_nodes.append(child)
+            nodes = next_nodes
+        for n in nodes:
+            self._fill_argtypes(n, terminal_prob=1.0)
+        return np.array([root])
 
     def allele(self, func: Callable[..., Any]) -> Callable[..., Any]:
         """Decorator that can be used on a function to add a callable
         as an allele to the pool.
         """
-        hints = get_type_hints(func).copy()
+        hints = get_type_hints(func)
         rtype = hints.pop("return")
 
         if rtype not in self._elementary:
@@ -159,7 +216,7 @@ class Pool(GenePool):
         self._elementary[rtype].append(GPCallable(
             rtype=rtype,
             name=func.__name__,
-            argtypes=hints,
+            argtypes=list(hints.values()),
             method=func,
         ))
         return func
@@ -220,30 +277,7 @@ def evaluate(
         A value that represents the result of the tree evaluation.
     """
     argset = arguments if arguments is not None else {}
-    if "x" not in argset:
-        print(80*"=")
-        print(f"{argset=}")
-    values: list[Any] = []
-    index = len(individual.genes) - 1
-    while index >= 0:
-        while isinstance(individual.genes[index], GPTerminal):
-            if individual.genes[index].allocated:
-                values.insert(0, individual.genes[index].value)
-            else:
-                name = individual.genes[index].name
-                if name not in argset:
-                    raise RuntimeError(f"Argument name {name!r} requested but "
-                                       "not supplied")
-                values.insert(0, argset[name])
-            index -= 1
-        argcount = len(individual.genes[index].argtypes)
-        values.insert(
-            0,
-            individual.genes[index](*values[-argcount:])
-        )
-        values = values[:len(values)-argcount]
-        index -= 1
-    return values[0]
+    return individual.genes[0].value(**argset)
 
 
 class Fitness(Fitness):
@@ -279,6 +313,18 @@ class Fitness(Fitness):
         ))
 
 
+def _get_path_to_random_child(node: GPCallable) -> list[int]:
+    # goes a random path from node to a leaf and returns the indices
+    # selected on that path
+    path = []
+    while isinstance(node, GPCallable):
+        child_index = np.random.randint(len(node.children))
+        path.append(child_index)
+        node = node.children[child_index]
+    index = np.random.randint(-1, len(path))
+    return path[:(index+1)]
+
+
 class PointMutation(Operator):
     """Point mutation used in a genetic programming algorithm.
     This mutation replaces a node in a genome tree by a subtree.
@@ -307,32 +353,33 @@ class PointMutation(Operator):
         self._max_height = max_height
         self._prob = prob
 
-    def _process_population(
-        self,
-        container: Population,
-    ) -> Population:
+    def _process_population(self, container: Population) -> Population:
         if np.random.random_sample() >= self._prob:
-            return container.deepcopy()
+            return Population(
+                Individual(np.array([container[0].genes[0].copy()]))
+            )
 
-        ind = container[0].copy()
-        index = np.random.randint(0, len(ind.genes))
-        # search for subtree slice starting at index in the tree
-        right = index + 1
-        total = 0
-        if not isinstance(ind.genes[index], GPTerminal):
-            total = len(ind.genes[index].argtypes)
-        while total > 0:
-            if isinstance(ind.genes[right], GPTerminal):
-                total -= 1
-            else:
-                total -= len(ind.genes[right].argtypes) - 1
-            right += 1
-        ind.genes = np.concatenate((
-            ind.genes[:index],
-            self._pool.create_genome(
-                rtype=ind.genes[index].rtype,
+        root: GPNode = container[0].genes[0].copy()
+        path_to_child = _get_path_to_random_child(root)
+        if not isinstance(root, GPCallable) or not path_to_child:
+            return Population(Individual(self._pool.create_genome(
+                rtype=root.rtype,
                 height=np.random.randint(self._min_height, self._max_height+1),
-            ),
-            ind.genes[right:],
-        ))
-        return Population(ind)
+            )))
+        node = root
+        for index in path_to_child[:-1]:
+            node = node.children[index]
+        node.children[path_to_child[-1]] = self._pool.create_genome(
+            rtype=node.children[path_to_child[-1]].rtype,
+            height=np.random.randint(self._min_height, self._max_height+1),
+        )[0]
+        return Population(Individual(np.array([root])))
+
+
+class Crossover(Operator):
+
+    def __init__(self, probability: float) -> None:
+        self._probability = probability
+
+    def _process_population(self, container: Population) -> Population:
+        return super()._process_population(container)
