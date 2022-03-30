@@ -323,6 +323,15 @@ class PointMutation(Operator):
 
 
 class Crossover(Operator):
+    """Crossover operator for genetic programming. This operator takes
+    the maximum height of a tree in GP into account. Only operations
+    that lead to properly sized individuals take effect. All others are
+    discarded.
+
+    Args:
+        probability (float, optional): Probability of attempting to
+            perfrom a crossover. Defaults to ``0.7``.
+    """
 
     def __init__(self, probability: float = 0.7) -> None:
         super().__init__(StraightIteration(batch_size=2))
