@@ -2,9 +2,11 @@
 another. This can help integrating offspring into parent population.
 """
 
+from typing import Optional
 import numpy as np
 
 from peal.community import Community
+from peal.genetics import GenePool
 from peal.operators.iteration import StraightIteration
 from peal.operators.operator import Operator
 
@@ -38,6 +40,8 @@ class FirstThingsFirst(Operator):
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         pop1, pop2 = container
         req_size = self._size
@@ -74,6 +78,8 @@ class Crowded(Operator):
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         """Merges the given offspring and parent population. Each
         offspring will be compared to a number of random individuals

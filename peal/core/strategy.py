@@ -1,17 +1,14 @@
 import re
-from dataclasses import dataclass, field
 from typing import ClassVar
 
 from peal.operators.clash import EquiMix
-from peal.operators.integration import FirstThingsFirst
 from peal.operators.iteration import NRandomBatchesIteration
 from peal.operators.mutation import NormalDist
-from peal.operators.operator import Operator
-from peal.operators.reproduction import Copy, DiscreteRecombination
+from peal.operators.operator import OperatorChain
+from peal.operators.reproduction import DiscreteRecombination
 from peal.operators.selection import Best, BestMean
 
 
-@dataclass
 class Strategy:
     """Class that describes an evolutionary strategy. It can be executed
     within a :class:`~peal.core.environment.Environment`.
@@ -53,37 +50,29 @@ class Strategy:
     """
 
     SIGNATURE_RE: ClassVar[str] = (
-        r"(?:(\d+)(/\d+)?(\+|,)(\d+))?\((\d+)(/\d+)?(\+|,)(\d+)\)(\^\d+)?"
+        r"(\[)?"
+        r"(?:(\d+)(/\d+)?(\+|,)(\d+))?"
+        r"\((\d+)(/\d+)?(\+|,)(\d+)\)(\^\d+)?"
+        r"(?(1)\](\^\d+)?|$)"
     )
 
-    init_individuals: int
-    generations: int
-
-    reproduction: Operator
-    mutation: Operator
-    selection: Operator
-
-    integration: Operator = field(
-        default_factory=FirstThingsFirst,
-    )
-
-    init_populations: int = 1
-    population_generations: int = 1
-    select_parent_populations: bool = True
-
-    population_selection: Operator = field(
-        default_factory=Copy,
-    )
-    population_reproduction: Operator = field(
-        default_factory=Copy,
-    )
+    def __init__(
+        self,
+        operator_chain: OperatorChain,
+        /, *,
+        init_size: int = 100,
+        generations: int = 100,
+    ) -> None:
+        self.operator_chain = operator_chain
+        self.init_size = init_size
+        self.generations = generations
 
     @staticmethod
-    def from_string(string: str, population_generations: int) -> "Strategy":
-        """Creates an evolutionary strategy based on the notation
+    def from_string(string: str, /) -> tuple["Strategy", "Strategy"]:
+        """Creates an evolutionary strategies based on the notation
         Schwefel (1977) used to characterize multimembered evolutionary
         strategies. This is a string matching the expression
-        ``a/b{,|+}c(d/e{,|+}f)^g`` where ``{,|+}`` denotes the
+        ``[a/b{,|+}c(d/e{,|+}f)^g]^h`` where ``{,|+}`` denotes the
         character ``,`` or ``+``. Other symbols are used to describe the
         following.
 
@@ -97,10 +86,15 @@ class Strategy:
         * ``f``: Size of one offspring population.
         * ``g``: Number of iterations each population evolves before
             mixin them.
+        * ``h``: Number of generations between population evolution.
+            There are two for-loops in a strategy like this. The outer
+            iterates ``h`` times, the inner ``g`` times.
 
         The values ``a``, ``b`` and ``c`` are optional, ``a`` and
         ``c`` always have to be supplied if one of them is
-        specified. Also ``b``, ``e`` and ``g`` are optional.
+        specified. Also ``b``, ``e``, ``g`` and ``h`` are optional. But
+        if they are given, the string also needs the corresponding
+        enclosing brackets.
         Specifying ``d+f`` refers to the strategy of using also
         the parent individuals of one population for selecting the
         offspring while ``d,f`` only selects individuals from the
@@ -109,27 +103,27 @@ class Strategy:
 
         Args:
             string (str): A string matching the described expression.
-            population_generations (int): An integer characterizing the
-                number of iterations a community is evolved.
         """
-        match = re.search(Strategy.SIGNATURE_RE, string)
+        match = re.match(Strategy.SIGNATURE_RE, string)
         if match is None:
             raise ValueError("Given signature does not match the "
                              "required pattern")
+        # ('[', 'a', '/b', ',+', 'c', 'd', '/e', ',+', 'f', '^g', '^h')
         matches = match.groups()
-        ind_parent_selection: bool = matches[6] == "+"
-        pop_parent_selection: bool = matches[2] == "+"
+        ind_parent_selection: bool = matches[7] == "+"
+        pop_parent_selection: bool = matches[3] == "+"
         # mu: number of parents
-        ind_mu: int = int(matches[4])
-        pop_mu: int = 1 if matches[0] is None else int(matches[0])
+        ind_mu: int = int(matches[5])
+        pop_mu: int = 1 if matches[1] is None else int(matches[1])
         # lambda: number of offspring
-        ind_lambda: int = int(matches[7])
-        pop_lambda: int = 1 if matches[3] is None else int(matches[3])
+        ind_lambda: int = int(matches[8])
+        pop_lambda: int = 1 if matches[4] is None else int(matches[4])
         # rho: mixin proportion number
-        ind_rho: int = 1 if matches[5] is None else int(matches[5][1:])
-        pop_rho: int = 1 if matches[1] is None else int(matches[1][1:])
-        # gamma: cycle number for single population evolution
-        ind_gamma: int = 1 if matches[8] is None else int(matches[8][1:])
+        ind_rho: int = 1 if matches[6] is None else int(matches[6][1:])
+        pop_rho: int = 1 if matches[2] is None else int(matches[2][1:])
+        # gamma: number of generations
+        ind_gamma: int = 1 if matches[9] is None else int(matches[9][1:])
+        pop_gamma: int = 1 if matches[10] is None else int(matches[10][1:])
         # operators
         selection = Best(
             in_size=(
@@ -153,20 +147,16 @@ class Strategy:
             group_size=pop_rho,
         )
         mutation = NormalDist(alpha=1.3, prob=1.0)
-        integration = FirstThingsFirst(
-            size=ind_mu+ind_lambda if ind_parent_selection else ind_lambda
-        )
 
-        return Strategy(
-            init_individuals=ind_mu,
-            generations=ind_gamma,
-            reproduction=reproduction,
-            mutation=mutation,
-            selection=selection,
-            integration=integration,
-            init_populations=pop_mu,
-            population_generations=population_generations,
-            select_parent_populations=pop_parent_selection,
-            population_reproduction=pop_reproduction,
-            population_selection=pop_selection,
-        )
+        return (
+            Strategy(
+                OperatorChain(selection, reproduction, mutation),
+                init_size=ind_mu,
+                generations=ind_gamma,
+            ),
+            Strategy(
+                OperatorChain(pop_selection, pop_reproduction),
+                init_size=pop_mu,
+                generations=pop_gamma,
+            ),
+       )

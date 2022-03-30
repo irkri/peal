@@ -3,7 +3,10 @@
 from typing import Optional, Union, overload
 import warnings
 
+import numpy as np
+
 from peal.community import Community
+from peal.genetics import GenePool
 from peal.operators.iteration import IterationType, SingleIteration
 from peal.population import Population
 
@@ -54,6 +57,8 @@ class Operator:
     def process(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         ...
 
@@ -61,29 +66,39 @@ class Operator:
     def process(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         ...
 
     def process(
         self,
         container: Union[Population, Community],
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Union[Population, Community]:
         """Processes and returns the given population or community."""
         if isinstance(container, Population):
             population = Population()
             for batch in self._iter_type(container):
-                population.integrate(self._process_population(batch))
+                population.integrate(
+                    self._process_population(batch, pool=pool)
+                )
             return population
         if isinstance(container, Community):
             community = Community()
             for population_batch in self._iter_type(container):
-                community.integrate(self._process_community(population_batch))
+                community.integrate(
+                    self._process_community(population_batch, pool=pool)
+                )
             return community
         raise TypeError("Operator can only process populations or communities")
 
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         warnings.warn(
             f"Operator {type(self).__name__} has been called on a"
@@ -96,6 +111,8 @@ class Operator:
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         warnings.warn(
             f"Operator {type(self).__name__} has been called on a"
@@ -104,3 +121,61 @@ class Operator:
             category=UserWarning,
         )
         return container
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__
+
+
+class OperatorChain:
+    """Class that chains :class:`~peal.operators.operator.Operator`
+    objects together.
+    The method :meth:`OperatorChain.process` processes the given
+    Population or Community with every operator in the order they are
+    given.
+
+    Args:
+        operators (Operator | list[Operator]): Any number of operators
+            or lists of operators. If a list is given, the operator will
+            be randomly selected from that list before processing the
+            given container.
+    """
+
+    def __init__(self, *operators: Union[Operator, list[Operator]]) -> None:
+        self._operators = operators
+
+    @overload
+    def process(
+        self,
+        container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
+    ) -> Population:
+        ...
+
+    @overload
+    def process(
+        self,
+        container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
+    ) -> Community:
+        ...
+
+    def process(
+        self,
+        container: Union[Population, Community],
+        /, *,
+        pool: Optional[GenePool] = None,
+    ) -> Union[Population, Community]:
+        """Processes and returns the given population or community."""
+        for operator in self._operators:
+            if isinstance(operator, list):
+                operator = operator[np.random.randint(len(operator))]
+            container = operator.process(container, pool=pool)
+        return container
+
+    def __repr__(self) -> str:
+        return " - ".join([
+            f"({' | '.join(map(str, x))})" if isinstance(x, list) else str(x)
+            for x in self._operators
+        ])

@@ -2,9 +2,11 @@
 population or populations from a community.
 """
 
+from typing import Optional
 import numpy as np
 
 from peal.community import Community
+from peal.genetics import GenePool
 from peal.operators.iteration import NRandomBatchesIteration, StraightIteration
 from peal.operators.operator import Operator
 from peal.population import Population
@@ -25,6 +27,8 @@ class Tournament(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         return Population(max(container, key=lambda x: x.fitness).copy())
 
@@ -43,6 +47,8 @@ class Best(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         return Population([ind.copy() for ind in sorted(
             container,
@@ -67,6 +73,8 @@ class BestMean(Operator):
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         return Community([pop.deepcopy() for pop in sorted(
             container,

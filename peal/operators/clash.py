@@ -2,9 +2,11 @@
 existing ones.
 """
 
+from typing import Optional
 import numpy as np
 
 from peal.community import Community
+from peal.genetics import GenePool
 from peal.operators.iteration import StraightIteration
 from peal.operators.operator import Operator
 from peal.population import Population
@@ -32,6 +34,8 @@ class EquiMix(Operator):
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         offspring_populations = Community()
         population_parent_indices = [

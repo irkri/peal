@@ -1,12 +1,11 @@
 from abc import abstractmethod
-from typing import Any, Callable, Optional, Union, get_type_hints
-from winreg import REG_OPTION_NON_VOLATILE
+from typing import Any, Callable, Optional, get_type_hints
 
 import numpy as np
 
-from peal.fitness import Fitness
 from peal.genetics import GenePool, GeneType
 from peal.individual import Individual
+from peal.operators.iteration import StraightIteration
 from peal.operators.operator import Operator
 from peal.population import Population
 
@@ -14,11 +13,12 @@ from peal.population import Population
 class GPNode:
     """Class representation of a node in a genetic programming tree."""
 
-    __slots__ = ("rtype", "name")
+    __slots__ = ("rtype", "name", "children")
 
     def __init__(self, rtype: type, name: str) -> None:
         self.rtype = rtype
         self.name = name
+        self.children: list[GPNode] = []
 
     @abstractmethod
     def value(self, **kwargs) -> Any:
@@ -26,6 +26,10 @@ class GPNode:
 
     @abstractmethod
     def copy(self) -> "GPNode":
+        ...
+
+    @abstractmethod
+    def height(self) -> int:
         ...
 
 
@@ -51,6 +55,9 @@ class GPCallable(GPNode):
 
     def value(self, **kwargs) -> Any:
         return self.method(*(node.value(**kwargs) for node in self.children))
+
+    def height(self) -> int:
+        return max(child.height() for child in self.children) + 1
 
     def copy(self) -> "GPCallable":
         return GPCallable(
@@ -97,6 +104,9 @@ class GPTerminal(GPNode):
     def allocated(self) -> bool:
         return self._value is not None
 
+    def height(self) -> int:
+        return 0
+
     def copy(self) -> "GPTerminal":
         return GPTerminal(self.rtype, self.name, self._value)
 
@@ -114,28 +124,18 @@ class Pool(GenePool):
     :meth:`GPPool.allele` on a newly created instance of this class.
 
     Args:
-        min_depth (int): The minimum depth of a genome tree.
-        max_depth (int): The maximum depth of a genome tree.
+        max_height (int): The maximum height of a genome tree.
     """
 
-    def __init__(
-        self,
-        min_depth: int,
-        max_depth: int,
-    ) -> None:
+    def __init__(self, max_height: int) -> None:
         super().__init__(typing=GeneType.NOMINAL)
         self._elementary: dict[type, list[GPCallable]] = {}
         self._terminal: dict[type, list[GPTerminal]] = {}
-        self._min_depth = min_depth
-        self._max_depth = max_depth
+        self._max_height = max_height
 
     @property
-    def min_depth(self) -> int:
-        return self._min_depth
-
-    @property
-    def max_depth(self) -> int:
-        return self._max_depth
+    def max_height(self) -> int:
+        return self._max_height
 
     def _fill_argtypes(
         self,
@@ -179,10 +179,12 @@ class Pool(GenePool):
         )
         height = kwargs.get(
             "height",
-            np.random.randint(self._min_depth, self._max_depth),
+            np.random.randint(self.max_height),
         )
         if height == 0:
-            return np.random.choice(np.array(self._terminal[rtype])).copy()
+            return np.array(
+                [np.random.choice(np.array(self._terminal[rtype])).copy()]
+            )
         root: GPCallable = np.random.choice(
             np.array(self._elementary[rtype])
         ).copy()
@@ -258,66 +260,16 @@ class Pool(GenePool):
             )
 
 
-def evaluate(
-    individual: Individual,
-    arguments: Optional[dict[str, Any]] = None,
-) -> Any:
-    """Evaluates an individual that has an genetic programming tree-like
-    genome. The evaluation executes all callables in their order they
-    appear in the tree. If arguments (i.e. unallocated variables) are
-    included in the individual, their values have to be specified in
-    ``arguments``.
-
-    Args:
-        individual (Individual): The individual to evalutate.
-        arguments (dict[str, Any], optional): A dictionary mapping
-            argument names to values. Defaults to None.
-
-    Returns:
-        A value that represents the result of the tree evaluation.
-    """
-    argset = arguments if arguments is not None else {}
-    return individual.genes[0].value(**argset)
-
-
-class Fitness(Fitness):
-    """Fitness to use in a genetic programming process.
-    The fitness will be the return value of the genome tree of
-    operations an individual consists of.
-
-    Args:
-        arguments (list[dict[str, Any]], optional): A number of
-            dictionaries mapping argument names to values of unallocated
-            terminal symbols that genes of individuals might have.
-            Defaults to empty list.
-        evaluation (callable, optional): A function that returns a
-            float by evaluating the return value of a individuals
-            genetic programming tree. The return values are collected in
-            lists and there are more than one value in this list if you
-            supplied multiple dictionaries in ``arguments``, i.e. one
-            value for each set of arguments given. Defaults to the float
-            value of for an empty set of arguments.
-    """
-
-    def __init__(
-        self,
-        arguments: Optional[list[dict[str, Any]]] = None,
-        evaluation: Optional[Callable[[list[Any]], float]] = None,
-    ) -> None:
-        eval_ = evaluation if evaluation is not None else (
-            lambda array: float(array[0])
-        )
-        argsets = arguments if arguments is not None else [{}]
-        super().__init__(lambda individual: eval_(
-            [evaluate(individual, argset) for argset in argsets]
-        ))
-
-
-def _get_path_to_random_child(node: GPCallable) -> list[int]:
+def _get_path_to_random_child(
+    node: GPNode,
+    max_depth: Optional[int] = None,
+) ->  list[int]:
     # goes a random path from node to a leaf and returns the indices
-    # selected on that path
+    # selected on that path as well as the node arrived at
+    if max_depth is None:
+        max_depth = 100_000
     path = []
-    while isinstance(node, GPCallable):
+    while isinstance(node, GPCallable) and len(path) < max_depth:
         child_index = np.random.randint(len(node.children))
         path.append(child_index)
         node = node.children[child_index]
@@ -330,56 +282,89 @@ class PointMutation(Operator):
     This mutation replaces a node in a genome tree by a subtree.
 
     Args:
-        gene_pool (GPPool): The gene pool used to generate a genome
-            tree for individuals.
-        min_height (int, optional): The minimal height of the replacing
-            subtree. Defaults to 1.
-        max_height (int, optional): The maximal height of the replacing
-            subtree. Defaults to 1.
         prob (float, optional): The probability to mutate one node in
-            the tree representation of an individual. Defaults to 0.1.
+            the individuals genome tree. Defaults to ``0.1``.
     """
 
-    def __init__(
-        self,
-        gene_pool: Pool,
-        min_height: int = 1,
-        max_height: int = 1,
-        prob: float = 0.1,
-    ) -> None:
+    def __init__(self, prob: float = 0.1) -> None:
         super().__init__()
-        self._pool = gene_pool
-        self._min_height = min_height
-        self._max_height = max_height
         self._prob = prob
 
-    def _process_population(self, container: Population) -> Population:
+    def _process_population(
+        self,
+        container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
+    ) -> Population:
+        if not isinstance(pool, Pool):
+            raise TypeError("Unknown gene pool given to the operator")
         if np.random.random_sample() >= self._prob:
             return Population(
                 Individual(np.array([container[0].genes[0].copy()]))
             )
 
-        root: GPNode = container[0].genes[0].copy()
+        root: GPCallable = container[0].genes[0].copy()
         path_to_child = _get_path_to_random_child(root)
         if not isinstance(root, GPCallable) or not path_to_child:
-            return Population(Individual(self._pool.create_genome(
+            return Population(Individual(pool.create_genome(
                 rtype=root.rtype,
-                height=np.random.randint(self._min_height, self._max_height+1),
+                height=np.random.randint(pool.max_height+1),
             )))
         node = root
         for index in path_to_child[:-1]:
             node = node.children[index]
-        node.children[path_to_child[-1]] = self._pool.create_genome(
+        node.children[path_to_child[-1]] = pool.create_genome(
             rtype=node.children[path_to_child[-1]].rtype,
-            height=np.random.randint(self._min_height, self._max_height+1),
+            height=np.random.randint(
+                pool.max_height-len(path_to_child)+1,
+            )
         )[0]
         return Population(Individual(np.array([root])))
 
 
 class Crossover(Operator):
 
-    def __init__(self, probability: float) -> None:
+    def __init__(self, probability: float = 0.7) -> None:
+        super().__init__(StraightIteration(batch_size=2))
         self._probability = probability
 
-    def _process_population(self, container: Population) -> Population:
-        return super()._process_population(container)
+    def _process_population(
+        self,
+        container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
+    ) -> Population:
+        if not isinstance(pool, Pool):
+            raise TypeError("Unknown gene pool given to the operator")
+        if np.random.random() <= self._probability:
+            return container.copy()
+
+        ind1, ind2 = container
+        path1 = _get_path_to_random_child(ind1.genes[0])
+        node1 = ind1.genes[0]
+        for index in path1[:-1]:
+            node1 = node1.children[index]
+        path2 = _get_path_to_random_child(
+            ind2.genes[0],
+            max_depth=pool.max_height-node1.height()-1,
+        )
+        node2 = ind2.genes[0]
+        for index in path2[:-1]:
+            node2 = node2.children[index]
+        temp1 = node1 if not path1 else node1.children[path1[-1]]
+        temp2 = node2 if not path2 else node2.children[path2[-1]]
+        if temp1.rtype != temp2.rtype:
+            return container.copy()
+
+        if path1 and path2:
+            if temp2.height() + len(path1) <= pool.max_height:
+                node1.children[path1[-1]] = node2.children[path2[-1]].copy()
+            node2.children[path2[-1]] = temp1.copy()
+        elif path1 and not path2:
+            if temp2.height() + len(path1) <= pool.max_height:
+                node1.children[path1[-1]] = node2.copy()
+            ind2 = Individual(np.array([temp1.copy()]))
+        elif not path1 and path2:
+            ind1 = Individual(np.array([node2.children[path2[-1]].copy()]))
+            node2.children[path2[-1]] = temp1.copy()
+        return Population((ind1, ind2))

@@ -3,6 +3,7 @@
 
 from typing import Optional
 import numpy as np
+from peal.genetics import GenePool
 
 from peal.operators.operator import Operator
 from peal.population import Population
@@ -24,6 +25,8 @@ class BitFlip(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         ind = container[0].copy()
         for i, gene in enumerate(ind.genes):
@@ -59,6 +62,8 @@ class UniformInt(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         ind = container[0].copy()
         hits = np.where(
@@ -99,6 +104,8 @@ class UniformFloat(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         ind = container[0].copy()
         hits = np.where(
@@ -148,6 +155,8 @@ class NormalDist(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         ind = container[0].copy()
         hits = np.where(

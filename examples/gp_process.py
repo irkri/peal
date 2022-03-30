@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 import peal
 
-pool = peal.gp.Pool(min_depth=1, max_depth=3)
+pool = peal.gp.Pool(max_height=3)
 
 
 @pool.allele
@@ -26,35 +26,39 @@ def cos(x: float) -> float:
     return np.cos(x)
 
 
+@pool.allele
+def iflt(x: float, y: float, r1: float, r2: float) -> float:
+    return r1 if x < y else r2
+
+
 pool.add_arguments({"x": float})
 pool.add_terminals(np.random.random)
 
+x_range = np.linspace(-5, 5, 100)
+real_values = np.exp(-x_range**2)
 
-X = np.linspace(-5, 5, 100)
-args = [{"x": X[i]} for i in range(len(X))]
+
+@peal.fitness
+def evaluate(individual: peal.Individual) -> float:
+    values = np.array(
+        [individual.genes[0].value(x=x) for x in x_range],
+    )
+    return -np.mean((values - real_values)**2)
 
 
-def evaluate(values: list[float]) -> float:
-    return - np.mean((values-np.exp(-X**2))**2)
-
+operators = peal.operators.OperatorChain(
+    peal.operators.selection.Tournament(size=3),
+    peal.gp.Crossover(0.7),
+    peal.gp.PointMutation(0.3),
+)
 
 strategy = peal.core.Strategy(
-    init_individuals=50,
+    operators,
+    init_size=50,
     generations=100,
-    reproduction=peal.operators.reproduction.Copy(),
-    mutation=peal.gp.PointMutation(
-        gene_pool=pool,
-        min_height=1,
-        max_height=3,
-        prob=0.3,
-    ),
-    selection=peal.operators.selection.Tournament(size=3),
 )
 
-environment = peal.core.Environment(
-    pool=pool,
-    fitness=peal.gp.Fitness(arguments=args, evaluation=evaluate),
-)
+environment = peal.core.Environment(pool=pool, fitness=evaluate)
 
 tracker = peal.callback.BestWorst()
 
@@ -66,10 +70,10 @@ fig = plt.figure(figsize=(10, 5))
 
 for i in range(20):
     axis = fig.add_subplot(4, 5, i+1)
-    axis.plot(X, np.exp(-X**2))
+    axis.plot(x_range, real_values)
     axis.plot(
-        X,
-        [peal.gp.evaluate(tracker.best[(i+1)*5-1], argset) for argset in args]
+        x_range,
+        [tracker.best[(i+1)*5-1].genes[0].value(x=x) for x  in x_range]
     )
     axis.set_title(f"Generation {(i+1)*5}")
 

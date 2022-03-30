@@ -14,26 +14,15 @@ def evaluate(individual: peal.Individual) -> float:
     return -np.mean((A - individual.genes)**2)
 
 
-strategy = peal.core.Strategy(
-    init_individuals=100,
-    generations=100,
-    selection=peal.operators.selection.Tournament(size=4),
-    mutation=peal.operators.mutation.UniformInt(
-        prob=0.1,
-        lowest=0,
-        highest=100,
-    ),
-    reproduction=peal.operators.reproduction.Crossover(
-        npoints=1,
-        probability=0.7,
-    ),
-    integration=peal.operators.integration.Crowded(10),
+operators = peal.operators.OperatorChain(
+    peal.operators.selection.Tournament(size=4),
+    peal.operators.mutation.UniformInt(prob=0.1, lowest=0, highest=100),
+    peal.operators.reproduction.Crossover(npoints=1, probability=0.7),
 )
 
-environment = peal.core.Environment(
-    pool=pool,
-    fitness=evaluate,
-)
+strategy = peal.core.Strategy(operators, init_size=100, generations=100)
+
+environment = peal.core.Environment(pool=pool, fitness=evaluate)
 
 tracker = peal.callback.BestWorst()
 statistics = peal.callback.Diversity(pool=pool)

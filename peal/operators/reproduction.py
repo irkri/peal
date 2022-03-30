@@ -1,11 +1,14 @@
 """Module that provides operators that reproduce individuals."""
 
+from typing import Optional
 import numpy as np
 
 from peal.community import Community
+from peal.genetics import GenePool
 from peal.operators.iteration import (
     SingleIteration,
     RandomStraightIteration,
+    StraightIteration,
 )
 from peal.operators.operator import Operator
 from peal.population import Population
@@ -22,12 +25,16 @@ class Copy(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         return container.deepcopy()
 
     def _process_community(
         self,
         container: Community,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Community:
         return container.deepcopy()
 
@@ -43,15 +50,18 @@ class Crossover(Operator):
     """
 
     def __init__(self, npoints: int = 2, probability: float = 0.5) -> None:
-        super().__init__(
-            RandomStraightIteration(batch_size=2, probability=probability)
-        )
+        super().__init__(StraightIteration(batch_size=2))
         self._npoints = npoints
+        self._probability = probability
 
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
+        if np.random.random() <= self._probability:
+            return container.copy()
         ind1, ind2 = container
         points = np.insert(
             np.sort(
@@ -102,6 +112,8 @@ class DiscreteRecombination(Operator):
     def _process_population(
         self,
         container: Population,
+        /, *,
+        pool: Optional[GenePool] = None,
     ) -> Population:
         if container.size == 1:
             return container.deepcopy()

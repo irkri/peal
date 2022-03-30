@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 from peal.community import Community
 from peal.core.callback import Callback
@@ -6,6 +7,7 @@ from peal.core.strategy import Strategy
 from peal.fitness import Fitness
 from peal.genetics import GenePool
 from peal.individual import Individual
+from peal.operators.operator import OperatorChain
 from peal.population import Population
 
 
@@ -26,54 +28,59 @@ class Environment:
     pool: GenePool
     fitness: Fitness
 
-    def execute(self, strategy: Strategy, callbacks: list[Callback]) -> None:
-        """Executes the given evolutionary strategy.
+    def execute(
+        self,
+        population_strategy: Strategy,
+        community_strategy: Optional[Strategy] = None,
+        callbacks: Optional[list[Callback]] = None,
+    ) -> None:
+        """Performs a evolution given evolutionary strategies.
 
         Args:
-            strategy (Strategy): The strategy to execute.
-            callbacks (list[Callback]): A number of callbacks that are
-                used to track information of the evolution following the
-                given strategy.
+            population_strategy (Strategy): The strategy to use for
+                population evolution.
+            community_strategy (Strategy, optional): The strategy to use
+                for community evolution.
+            callbacks (list[Callback], optional): A number of callbacks
+                that are used to track information of the evolution
+                following the given strategies.
         """
+        if community_strategy is None:
+            community_strategy = Strategy(
+                OperatorChain(),
+                init_size=1,
+                generations=1,
+            )
         callbacks = [] if callbacks is None else callbacks
 
-        parent_populations = Community()
-        for i in range(strategy.init_populations):
+        populations = Community()
+        for i in range(community_strategy.init_size):
             population = Population()
-            for _ in range(strategy.init_individuals):
+            for _ in range(population_strategy.init_size):
                 population.integrate(Individual(self.pool.create_genome()))
-            parent_populations.integrate(population)
-            if strategy.select_parent_populations:
-                self.fitness.evaluate(parent_populations[-1])
+            populations.integrate(population)
+            self.fitness.evaluate(populations[-1])
             for callback in callbacks:
-                callback.on_start(parent_populations[-1])
+                callback.on_start(populations[-1])
 
-        for _ in range(strategy.population_generations):
-            offspring_populations = strategy.population_reproduction.process(
-                parent_populations
+        for _ in range(community_strategy.generations):
+            populations = community_strategy.operator_chain.process(
+                populations,
+                pool=self.pool,
             )
-
-            for _ in range(strategy.generations):
-                for i, parents in enumerate(offspring_populations):
+            self.fitness.evaluate(populations)
+            for _ in range(population_strategy.generations):
+                for i, parents in enumerate(populations):
                     for callback in callbacks:
                         callback.on_generation_start(parents)
 
-                    offspring = strategy.reproduction.process(parents)
-                    offspring = strategy.mutation.process(offspring)
-                    self.fitness.evaluate(offspring)
-                    offspring = strategy.integration.process(
-                        Community((offspring, parents))
-                    )[0]
-                    offspring_populations[i] = strategy.selection.process(
-                        offspring
+                    populations[i] = (
+                        population_strategy.operator_chain.process(
+                            parents,
+                            pool=self.pool,
+                        )
                     )
+                    self.fitness.evaluate(populations[i])
 
                     for callback in callbacks:
-                        callback.on_generation_end(offspring_populations[i])
-
-            if strategy.select_parent_populations:
-                for population in parent_populations:
-                    offspring_populations.integrate(population)
-            parent_populations = strategy.population_selection.process(
-                offspring_populations
-            )
+                        callback.on_generation_end(populations[i])
